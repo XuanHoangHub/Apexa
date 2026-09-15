@@ -1551,12 +1551,16 @@
   flex-direction: column;
   max-height: calc(100vh - 250px);
   min-height: 460px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   position: relative;
 }
 .ps-kanban-column.is-drag-over {
   border-color: #5587a6;
-  box-shadow: 0 0 0 1px #5587a6, 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px #5587a6,
+    0 4px 16px rgba(0, 0, 0, 0.4);
 }
 .ps-kanban-column.is-column-drag-over {
   border-left: 2px solid #76e4ef;
@@ -1650,7 +1654,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .ps-icon-btn:hover {
   background: #23313b;
@@ -1685,7 +1691,9 @@
   border-radius: 5px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 .ps-kanban-menu-item:hover:not(:disabled) {
   background: #283742;
@@ -1764,7 +1772,9 @@
   position: relative;
   cursor: grab;
   user-select: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .ps-task-card:active {
   cursor: grabbing;

@@ -115,7 +115,7 @@ export function NotificationBell({
   // Actions
   const markAsRead = (id: string) => {
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+      prev.map((item) => (item.id === id ? { ...item, read: true } : item)),
     );
   };
 
@@ -134,7 +134,8 @@ export function NotificationBell({
     const demoItems: Array<Omit<NotificationItem, 'id' | 'read'>> = [
       {
         title: 'Đơn hàng mới #8492',
-        description: 'Khách hàng vừa thanh toán thành công qua cổng thanh toán.',
+        description:
+          'Khách hàng vừa thanh toán thành công qua cổng thanh toán.',
         time: 'Vừa xong',
         type: 'feature',
       },
@@ -156,7 +157,7 @@ export function NotificationBell({
   };
 
   const filteredItems = items.filter((item) =>
-    filter === 'unread' ? !item.read : true
+    filter === 'unread' ? !item.read : true,
   );
 
   const renderBadgeContent = () => {
@@ -198,9 +199,7 @@ export function NotificationBell({
           data-open={hasUnread ? 'true' : 'false'}
           aria-hidden={!hasUnread}
         >
-          <span
-            className={`t-badge-dot ${variant === 'dot' ? 'is-dot' : ''}`}
-          >
+          <span className={`t-badge-dot ${variant === 'dot' ? 'is-dot' : ''}`}>
             {renderBadgeContent()}
           </span>
         </span>
@@ -212,12 +211,16 @@ export function NotificationBell({
           className={`absolute top-full mt-2.5 z-50 w-80 sm:w-96 rounded-2xl border border-neutral-200/80 bg-white/95 backdrop-blur-md shadow-2xl transition-all duration-200 animate-in fade-in-0 zoom-in-95 dark:border-neutral-800 dark:bg-neutral-900/95 text-neutral-900 dark:text-neutral-100 ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
-          style={{ transformOrigin: align === 'right' ? 'top right' : 'top left' }}
+          style={{
+            transformOrigin: align === 'right' ? 'top right' : 'top left',
+          }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-neutral-100 dark:border-neutral-800/80">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold tracking-tight">Thông báo</h3>
+              <h3 className="text-sm font-semibold tracking-tight">
+                Thông báo
+              </h3>
               {unreadCount > 0 && (
                 <span className="text-[11px] font-semibold bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400 px-2 py-0.5 rounded-full">
                   {unreadCount} mới
@@ -374,7 +377,9 @@ export function NotificationBell({
               <PlusCircle className="w-3.5 h-3.5" />
               <span>Thử nhận thông báo mới</span>
             </button>
-            <span className="text-[10px] text-neutral-400">Transitions.dev</span>
+            <span className="text-[10px] text-neutral-400">
+              Transitions.dev
+            </span>
           </div>
         </div>
       )}

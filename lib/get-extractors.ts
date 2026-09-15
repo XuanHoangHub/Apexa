@@ -289,7 +289,7 @@ export async function extractPinterest(
     const videoList = pin.videos?.video_list || {};
     for (const key of ['V_720P', 'V_EXP7', 'V_HLSV4']) {
       const v = videoList[key];
-      if (v?.url && !seen.has(v.url) && v.url.endsWith('.mp4')) {
+      if (v?.url && !seen.has(v.url) && /\.mp4(\?|$)/i.test(v.url)) {
         seen.add(v.url);
         const q = key === 'V_720P' ? '720p HD' : 'HD Video';
         formats.push({

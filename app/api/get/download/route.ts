@@ -256,7 +256,15 @@ export async function GET(req: NextRequest) {
 
     if (!remoteRes.ok && remoteRes.status !== 206) {
       // If direct proxy fetch fails (e.g. strict origin IP binding), redirect user directly to CDN URL
-      return NextResponse.redirect(targetUrl, 302);
+      if (
+        targetUrl &&
+        (targetUrl.startsWith('http://') || targetUrl.startsWith('https://'))
+      ) {
+        return NextResponse.redirect(targetUrl, 302);
+      }
+      return new Response('Upstream fetch failed', {
+        status: remoteRes.status,
+      });
     }
 
     const responseHeaders = buildResponseHeaders(
@@ -274,10 +282,12 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error('Download proxy streaming error:', err);
     // Fallback: redirect directly to target URL so user can still access file
-    const url = new URL(req.url).searchParams.get('url');
-    if (url) {
-      return NextResponse.redirect(url, 302);
-    }
+    try {
+      const url = new URL(req.url).searchParams.get('url');
+      if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        return NextResponse.redirect(url, 302);
+      }
+    } catch {}
     return new Response('Download failed', { status: 500 });
   }
 }

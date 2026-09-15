@@ -187,8 +187,7 @@ export default function KanbanBoard({
     async (name: string) => {
       const trimmed = name.trim();
       if (!trimmed) return;
-      const color =
-        PRESET_COLORS[columns.length % PRESET_COLORS.length].value;
+      const color = PRESET_COLORS[columns.length % PRESET_COLORS.length].value;
       const newCol: Item = {
         id: crypto.randomUUID(),
         name: trimmed,

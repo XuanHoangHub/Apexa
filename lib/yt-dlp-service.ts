@@ -38,11 +38,19 @@ const FFMPEG_PATH = path.resolve(
 );
 
 export function isYtDlpAvailable(): boolean {
-  return fs.existsSync(YT_DLP_PATH);
+  try {
+    return fs.existsSync(YT_DLP_PATH);
+  } catch {
+    return false;
+  }
 }
 
 export function isFfmpegAvailable(): boolean {
-  return fs.existsSync(FFMPEG_PATH);
+  try {
+    return fs.existsSync(FFMPEG_PATH);
+  } catch {
+    return false;
+  }
 }
 
 export async function extractWithYtDlp(

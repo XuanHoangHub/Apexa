@@ -1,11 +1,15 @@
 export async function POST(request: Request) {
   const json = (data: unknown, status = 200) => Response.json(data, { status });
-  if (
-    request.headers.get('origin') &&
-    new URL(request.headers.get('origin')!).origin !==
-      new URL(request.url).origin
-  )
-    return json({ error: 'Invalid request origin.' }, 403);
+  const originHeader = request.headers.get('origin');
+  if (originHeader && originHeader !== 'null') {
+    try {
+      if (new URL(originHeader).origin !== new URL(request.url).origin) {
+        return json({ error: 'Invalid request origin.' }, 403);
+      }
+    } catch {
+      return json({ error: 'Invalid request origin.' }, 403);
+    }
+  }
   const runtime = process.env;
   const aiEndpoint = runtime.APEXA_AI_ENDPOINT || runtime.FRAME_AI_ENDPOINT;
   const aiToken = runtime.APEXA_AI_TOKEN || runtime.FRAME_AI_TOKEN;

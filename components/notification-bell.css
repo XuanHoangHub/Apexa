@@ -48,19 +48,38 @@
 
 /* Bell swing animation when new notification triggers */
 @keyframes t-bell-swing {
-  0%   { transform: rotate(0deg); }
-  15%  { transform: rotate(14deg); }
-  30%  { transform: rotate(-12deg); }
-  45%  { transform: rotate(9deg); }
-  60%  { transform: rotate(-6deg); }
-  75%  { transform: rotate(3deg); }
-  100% { transform: rotate(0deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(14deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(9deg);
+  }
+  60% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
 }
 
 /* Pulse glow animation for high attention */
 @keyframes t-badge-pulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.08); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -76,7 +95,7 @@
   z-index: 10;
 }
 
-.t-badge[data-open="true"] {
+.t-badge[data-open='true'] {
   animation: t-badge-slide-in var(--badge-slide-dur) var(--badge-slide-ease);
 }
 
@@ -96,29 +115,30 @@
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
-  box-shadow: 0 0 0 2px var(--badge-ring),
-              0 2px 6px rgba(220, 38, 38, 0.45);
+  box-shadow:
+    0 0 0 2px var(--badge-ring),
+    0 2px 6px rgba(220, 38, 38, 0.45);
   user-select: none;
   transform-origin: center;
   transform: scale(1);
   opacity: 1;
   filter: blur(0);
   transition:
-    transform var(--badge-pop-dur)  var(--badge-pop-ease),
-    opacity   var(--badge-fade-dur) var(--badge-pop-ease),
-    filter    var(--badge-pop-dur)  var(--badge-pop-ease);
+    transform var(--badge-pop-dur) var(--badge-pop-ease),
+    opacity var(--badge-fade-dur) var(--badge-pop-ease),
+    filter var(--badge-pop-dur) var(--badge-pop-ease);
   will-change: transform, opacity, filter;
 }
 
 /* Closed state */
-.t-badge[data-open="false"] .t-badge-dot {
+.t-badge[data-open='false'] .t-badge-dot {
   transform: scale(0);
   opacity: 0;
   filter: blur(var(--badge-blur));
   transition:
-    transform var(--badge-pop-close-dur)  var(--badge-close-ease),
-    opacity   var(--badge-fade-close-dur) var(--badge-close-ease),
-    filter    var(--badge-pop-close-dur)  var(--badge-close-ease);
+    transform var(--badge-pop-close-dur) var(--badge-close-ease),
+    opacity var(--badge-fade-close-dur) var(--badge-close-ease),
+    filter var(--badge-pop-close-dur) var(--badge-close-ease);
 }
 
 /* Minimalist dot mode (without number count) */
@@ -145,7 +165,11 @@
   color: var(--bell-trigger-color);
   cursor: pointer;
   outline: none;
-  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.12s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.12s;
   user-select: none;
 }
 
@@ -171,7 +195,7 @@
   transition: transform 0.2s ease;
 }
 
-.t-bell-trigger[data-ringing="true"] .t-bell-icon {
+.t-bell-trigger[data-ringing='true'] .t-bell-icon {
   animation: t-bell-swing 0.75s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
@@ -181,7 +205,7 @@
 @media (prefers-reduced-motion: reduce) {
   .t-badge,
   .t-badge-dot,
-  .t-bell-trigger[data-ringing="true"] .t-bell-icon {
+  .t-bell-trigger[data-ringing='true'] .t-bell-icon {
     animation: none !important;
     transition: none !important;
   }
