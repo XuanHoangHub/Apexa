@@ -1,0 +1,188 @@
+/* ==========================================================================
+   Transitions.dev — Complete Notification Badge & Bell Component Styles
+   ========================================================================== */
+
+:root {
+  /* Animation Timing & Easings */
+  --badge-slide-dur: 260ms;
+  --badge-pop-dur: 500ms;
+  --badge-pop-close-dur: 180ms;
+  --badge-fade-dur: 400ms;
+  --badge-fade-close-dur: 180ms;
+  --badge-blur: 2px;
+  --badge-offset-x: -8.2px;
+  --badge-offset-y: 12.4px;
+  --badge-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --badge-pop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Visual Colors */
+  --badge-bg: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --badge-color: #ffffff;
+  --badge-ring: #ffffff;
+  --bell-trigger-bg: #ffffff;
+  --bell-trigger-hover: #f3f4f6;
+  --bell-trigger-border: rgba(0, 0, 0, 0.08);
+  --bell-trigger-color: #374151;
+}
+
+.dark {
+  --badge-ring: #18181b;
+  --bell-trigger-bg: #18181b;
+  --bell-trigger-hover: #27272a;
+  --bell-trigger-border: rgba(255, 255, 255, 0.1);
+  --bell-trigger-color: #e4e4e7;
+}
+
+/* --------------------------------------------------------------------------
+   Badge Animations (Transitions.dev)
+   -------------------------------------------------------------------------- */
+@keyframes t-badge-slide-in {
+  from {
+    transform: translate(var(--badge-offset-x), var(--badge-offset-y));
+  }
+  to {
+    transform: translate(0, 0);
+  }
+}
+
+/* Bell swing animation when new notification triggers */
+@keyframes t-bell-swing {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(14deg); }
+  30%  { transform: rotate(-12deg); }
+  45%  { transform: rotate(9deg); }
+  60%  { transform: rotate(-6deg); }
+  75%  { transform: rotate(3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Pulse glow animation for high attention */
+@keyframes t-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+/* --------------------------------------------------------------------------
+   Badge Structure & Styling
+   -------------------------------------------------------------------------- */
+/* Wrapper anchor */
+.t-badge {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  pointer-events: none;
+  will-change: transform;
+  z-index: 10;
+}
+
+.t-badge[data-open="true"] {
+  animation: t-badge-slide-in var(--badge-slide-dur) var(--badge-slide-ease);
+}
+
+/* Badge dot element */
+.t-badge-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4.5px;
+  border-radius: 9999px;
+  background: var(--badge-bg);
+  color: var(--badge-color);
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  box-shadow: 0 0 0 2px var(--badge-ring),
+              0 2px 6px rgba(220, 38, 38, 0.45);
+  user-select: none;
+  transform-origin: center;
+  transform: scale(1);
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    transform var(--badge-pop-dur)  var(--badge-pop-ease),
+    opacity   var(--badge-fade-dur) var(--badge-pop-ease),
+    filter    var(--badge-pop-dur)  var(--badge-pop-ease);
+  will-change: transform, opacity, filter;
+}
+
+/* Closed state */
+.t-badge[data-open="false"] .t-badge-dot {
+  transform: scale(0);
+  opacity: 0;
+  filter: blur(var(--badge-blur));
+  transition:
+    transform var(--badge-pop-close-dur)  var(--badge-close-ease),
+    opacity   var(--badge-fade-close-dur) var(--badge-close-ease),
+    filter    var(--badge-pop-close-dur)  var(--badge-close-ease);
+}
+
+/* Minimalist dot mode (without number count) */
+.t-badge-dot.is-dot {
+  min-width: 9px;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Bell Trigger Button
+   -------------------------------------------------------------------------- */
+.t-bell-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--bell-trigger-border);
+  background: var(--bell-trigger-bg);
+  color: var(--bell-trigger-color);
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.12s;
+  user-select: none;
+}
+
+.t-bell-trigger:hover {
+  background: var(--bell-trigger-hover);
+  color: #111827;
+}
+
+.dark .t-bell-trigger:hover {
+  color: #fafafa;
+}
+
+.t-bell-trigger:active {
+  transform: scale(0.95);
+}
+
+.t-bell-trigger:focus-visible {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+.t-bell-icon {
+  transform-origin: top center;
+  transition: transform 0.2s ease;
+}
+
+.t-bell-trigger[data-ringing="true"] .t-bell-icon {
+  animation: t-bell-swing 0.75s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility (Reduced Motion)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .t-badge,
+  .t-badge-dot,
+  .t-bell-trigger[data-ringing="true"] .t-bell-icon {
+    animation: none !important;
+    transition: none !important;
+  }
+}

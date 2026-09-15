@@ -1,0 +1,1039 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── Screenplay Studio Root Container ── */
+.screenplay-studio {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  min-height: 720px;
+  background: #0f1317;
+  border: 1px solid #27313a;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Top Header Toolbar ── */
+.sp-header-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: #151b22;
+  border-bottom: 1px solid #27313a;
+  gap: 12px;
+  flex-wrap: wrap;
+  z-index: 20;
+}
+
+.sp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sp-project-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: #1c242c;
+  border: 1px solid #2f3c47;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.sp-revision-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.sp-revision-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.sp-stats-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #8da4b4;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid #24303a;
+}
+
+.sp-stats-pill b {
+  color: #38bdf8;
+}
+
+.sp-header-center {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #11161c;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #27313a;
+}
+
+.sp-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8da4b4;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sp-view-tab:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sp-view-tab.active {
+  color: #ffffff;
+  background: #273542;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.sp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+  background: #1c242c;
+  border: 1px solid #2e3b46;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sp-action-btn:hover {
+  background: #27323c;
+  color: #ffffff;
+  border-color: #3d4d5a;
+}
+
+.sp-action-btn.primary {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.sp-action-btn.primary:hover {
+  background: #0369a1;
+}
+
+.sp-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Secondary Format Bar ── */
+.sp-format-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 18px;
+  background: #1a2129;
+  border-bottom: 1px solid #27313a;
+  gap: 12px;
+  font-size: 11px;
+  z-index: 15;
+}
+
+.sp-element-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sp-element-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  background: #141a20;
+  border: 1px solid #2a3642;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.sp-element-btn kbd {
+  font-family: inherit;
+  font-size: 9px;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #64748b;
+}
+
+.sp-element-btn:hover {
+  color: #f1f5f9;
+  border-color: #38bdf8;
+  background: #1c252e;
+}
+
+.sp-element-btn.active {
+  background: #0369a1;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+.sp-element-btn.active kbd {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.sp-format-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sp-toggle-pill input {
+  cursor: pointer;
+}
+
+.sp-zoom-select {
+  padding: 3px 6px;
+  font-size: 11px;
+  background: #141a20;
+  border: 1px solid #2a3642;
+  border-radius: 4px;
+  color: #cbd5e1;
+  outline: none;
+}
+
+/* ── Workspace Main Area ── */
+.sp-main-workspace {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sp-main-workspace.sidebar-collapsed {
+  grid-template-columns: 0px 1fr;
+}
+
+/* ── Scene Outline Sidebar ── */
+.sp-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: #141a21;
+  border-right: 1px solid #27313a;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.sp-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #222b33;
+}
+
+.sp-sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #7b9cad;
+}
+
+.sp-scene-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sp-scene-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  width: 100%;
+}
+
+.sp-scene-item:hover {
+  background: #1c242c;
+  border-color: #2c3843;
+}
+
+.sp-scene-item.active {
+  background: #1f2b37;
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.sp-scene-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  min-width: 24px;
+  text-align: center;
+  padding: 2px 4px;
+  background: rgba(56, 189, 248, 0.1);
+  border-radius: 4px;
+}
+
+.sp-scene-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sp-scene-heading-text {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.sp-scene-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.sp-scene-intext {
+  font-weight: 600;
+  color: #8da4b4;
+}
+
+.sp-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid #222b33;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Content View Area ── */
+.sp-content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: #090c10;
+  padding: 30px 20px 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* ── Page View (WYSIWYG Standard Paper Sheets) ── */
+.sp-pages-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  width: 100%;
+}
+
+.sp-paper-page {
+  width: 816px; /* 8.5 inches * 96 dpi */
+  min-height: 1056px; /* 11 inches * 96 dpi */
+  background: #ffffff;
+  color: #111827;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
+  box-sizing: border-box;
+  padding: 96px 96px 96px 144px; /* Top: 1", Right: 1", Bottom: 1", Left: 1.5" */
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  line-height: 1.15;
+  transition: transform 0.15s ease;
+  transform-origin: top center;
+  user-select: text;
+}
+
+/* Page Header with Right-Aligned Page Number */
+.sp-page-header {
+  position: absolute;
+  top: 48px; /* 0.5" from top */
+  right: 96px; /* 1.0" from right */
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  color: #374151;
+  font-weight: normal;
+  pointer-events: none;
+}
+
+/* Title Page Layout */
+.sp-title-page-canvas {
+  width: 816px;
+  height: 1056px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  padding: 96px 96px 96px 144px;
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  line-height: 1.2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sp-title-block {
+  margin-top: 260px;
+  text-align: center;
+}
+
+.sp-title-main {
+  font-size: 18pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-decoration: underline;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+
+.sp-title-credit {
+  font-size: 12pt;
+  margin-bottom: 16px;
+}
+
+.sp-title-author {
+  font-size: 14pt;
+  margin-bottom: 24px;
+}
+
+.sp-title-source {
+  font-size: 11pt;
+  font-style: italic;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.sp-title-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 10pt;
+  color: #4b5563;
+}
+
+.sp-title-contact {
+  text-align: left;
+  line-height: 1.4;
+}
+
+.sp-title-meta {
+  text-align: right;
+  line-height: 1.4;
+}
+
+/* ── Screenplay Standard Element Styles ── */
+.sp-block {
+  position: relative;
+  outline: none;
+  border-radius: 2px;
+  padding: 1px 4px;
+  transition: background-color 0.1s ease;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.sp-block:focus {
+  background-color: #f1f5f9;
+  box-shadow: 0 0 0 1px #93c5fd;
+}
+
+/* 1. Scene Heading (Slugline) */
+.sp-block.scene_heading {
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+  width: 100%;
+  color: #111827;
+}
+
+.sp-block.scene_heading:first-child {
+  margin-top: 0;
+}
+
+/* Scene numbers on left & right gutters */
+.sp-block-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.sp-scene-gutter-left {
+  position: absolute;
+  left: -48px;
+  top: 1.8em;
+  font-family: 'Courier Prime', monospace;
+  font-size: 12pt;
+  font-weight: bold;
+  color: #64748b;
+  user-select: none;
+  pointer-events: none;
+}
+
+.sp-scene-gutter-right {
+  position: absolute;
+  right: -48px;
+  top: 1.8em;
+  font-family: 'Courier Prime', monospace;
+  font-size: 12pt;
+  font-weight: bold;
+  color: #64748b;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 2. Action */
+.sp-block.action {
+  margin-top: 0.5em;
+  margin-bottom: 1em;
+  max-width: 576px; /* ~6.0 inches */
+  text-align: left;
+  line-height: 1.25;
+}
+
+/* 3. Character */
+.sp-block.character {
+  text-transform: uppercase;
+  margin-top: 1.2em;
+  margin-bottom: 0.1em;
+  margin-left: 211px; /* 3.7" from paper left edge (1.5" margin + 2.2") */
+  max-width: 336px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* 4. Parenthetical */
+.sp-block.parenthetical {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+  margin-left: 154px; /* 3.1" from paper left edge (1.5" margin + 1.6") */
+  max-width: 240px;
+}
+
+/* 5. Dialogue */
+.sp-block.dialogue {
+  margin-top: 0.1em;
+  margin-bottom: 1em;
+  margin-left: 96px; /* 2.5" from paper left edge (1.5" margin + 1.0") */
+  max-width: 336px; /* ~3.5 inches / ~35 characters per line */
+  line-height: 1.2;
+}
+
+/* 6. Transition */
+.sp-block.transition {
+  text-transform: uppercase;
+  margin-top: 1.2em;
+  margin-bottom: 1.2em;
+  text-align: right;
+  max-width: 576px;
+  font-weight: 600;
+}
+
+/* 7. Shot */
+.sp-block.shot {
+  text-transform: uppercase;
+  font-weight: bold;
+  margin-top: 1.4em;
+  margin-bottom: 0.6em;
+}
+
+/* 8. Note */
+.sp-block.note {
+  font-style: italic;
+  color: #0369a1;
+  background: #f0f9ff;
+  border-left: 3px solid #0284c7;
+  padding: 4px 8px;
+  margin: 8px 0;
+  max-width: 576px;
+  font-size: 11pt;
+}
+
+/* ── Smart Auto-Suggestion Popover ── */
+.sp-suggestion-popover {
+  position: absolute;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  z-index: 100;
+  min-width: 200px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.sp-suggestion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 12px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.sp-suggestion-item:hover,
+.sp-suggestion-item.selected {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.sp-suggestion-tag {
+  font-family: sans-serif;
+  font-size: 10px;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ── Fountain Raw Editor Mode ── */
+.sp-fountain-container {
+  width: 100%;
+  max-width: 960px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sp-fountain-textarea {
+  width: 100%;
+  min-height: 700px;
+  flex: 1;
+  background: #11161d;
+  color: #e2e8f0;
+  border: 1px solid #273542;
+  border-radius: 8px;
+  padding: 30px;
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  resize: vertical;
+  outline: none;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.sp-fountain-textarea:focus {
+  border-color: #38bdf8;
+}
+
+/* ── Read / Table-Read Mode (Teleprompter) ── */
+.sp-read-mode-container {
+  width: 100%;
+  max-width: 860px;
+  background: #131920;
+  border-radius: 12px;
+  border: 1px solid #283644;
+  padding: 40px;
+  color: #f1f5f9;
+}
+
+.sp-read-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #273441;
+}
+
+.sp-character-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sp-read-select {
+  background: #1a222c;
+  color: #f8fafc;
+  border: 1px solid #334353;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.sp-read-paragraph {
+  margin-bottom: 20px;
+  font-family: 'Courier Prime', monospace;
+  font-size: 14pt;
+  line-height: 1.6;
+}
+
+.sp-read-paragraph.highlighted-char {
+  background: rgba(56, 189, 248, 0.12);
+  border-left: 4px solid #38bdf8;
+  padding: 10px 16px;
+  border-radius: 0 8px 8px 0;
+}
+
+.sp-read-paragraph.highlighted-char .sp-read-speaker {
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+/* ── Analytics & Breakdown Dashboard ── */
+.sp-analytics-container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sp-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.sp-metric-card {
+  background: #151b22;
+  border: 1px solid #27313a;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-metric-label {
+  font-size: 11px;
+  color: #8da4b4;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.sp-metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.sp-metric-sub {
+  font-size: 12px;
+  color: #38bdf8;
+}
+
+.sp-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.sp-chart-card {
+  background: #151b22;
+  border: 1px solid #27313a;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.sp-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.sp-ratio-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sp-ratio-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: width 0.3s ease;
+}
+
+.sp-ratio-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #8da4b4;
+}
+
+.sp-character-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.sp-character-table th {
+  padding: 8px 12px;
+  color: #64748b;
+  border-bottom: 1px solid #27313a;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sp-character-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #1f2730;
+  color: #cbd5e1;
+}
+
+.sp-character-table tr:hover td {
+  background: #1a222a;
+}
+
+/* ── Modals: Title Page, Revisions, Shortcuts ── */
+.sp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.sp-modal-dialog {
+  background: #171f27;
+  border: 1px solid #2e3c49;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sp-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #27333f;
+}
+
+.sp-modal-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.sp-modal-close {
+  background: transparent;
+  border: none;
+  color: #8da4b4;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.sp-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.sp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-form-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8da4b4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sp-form-input,
+.sp-form-textarea {
+  background: #10151a;
+  border: 1px solid #2b3946;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.sp-form-input:focus,
+.sp-form-textarea:focus {
+  border-color: #38bdf8;
+}
+
+.sp-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #27333f;
+  background: #141a20;
+}
+
+/* ── WGA Industry Print Stylesheet ── */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 1in 1in 1in 1.5in; /* Standard Hollywood Brad Margin */
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .screenplay-studio,
+  .sp-pages-container,
+  .sp-paper-page,
+  .sp-paper-page * {
+    visibility: visible;
+  }
+
+  .screenplay-studio {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .sp-header-toolbar,
+  .sp-format-bar,
+  .sp-sidebar,
+  .sp-suggestion-popover,
+  .sp-modal-overlay {
+    display: none !important;
+  }
+
+  .sp-content-area {
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  .sp-pages-container {
+    gap: 0 !important;
+  }
+
+  .sp-paper-page {
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .sp-page-header {
+    position: fixed;
+    top: -0.5in;
+    right: 0;
+  }
+
+  .sp-block.scene_heading {
+    page-break-before: auto;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .sp-block.character {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .sp-block.parenthetical {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .sp-block.note {
+    display: none !important; /* Notes do not print in production scripts */
+  }
+}

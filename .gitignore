@@ -39,3 +39,7 @@ next-env.d.ts
 
 !.env.example
 *.tsbuildinfo
+
+/.open-next/
+.dev.vars*
+/bin/

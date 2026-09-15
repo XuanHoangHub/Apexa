@@ -1,24 +1,41 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+import NextImage from 'next/image';
+import Link from 'next/link';
+import AccountMenu from '@/components/auth/account-menu';
+import {
+  hero,
+  works,
+  modes,
+  labels,
+  shortLabels,
+  navGroups,
+  badges,
+  motions,
+  categories,
+  type View,
+  type Work,
+  type Draft,
+} from '@/lib/studio-data';
+const StudioDialogs = dynamic(() => import('./studio-dialogs'));
+const GetStudio = dynamic(() => import('./get-studio'));
+
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Aperture,
   ArrowDownToLine,
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  AudioLines,
   Bookmark,
-  Box,
-  Check,
-  ChevronDown,
   Clapperboard,
-  Compass,
-  Film,
+  Copy,
   FolderOpen,
   Image as ImageIcon,
   Layers,
   LayoutGrid,
   LoaderCircle,
+  Menu,
   MoreHorizontal,
   MousePointer2,
   Plus,
@@ -27,32 +44,11 @@ import {
   Upload,
   WandSparkles,
   X,
-  Zap,
   CircleHelp,
   Bell,
-  Scissors,
   Trash2,
   Volume2,
 } from 'lucide-react';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from '@/components/ui/sidebar';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectTrigger,
@@ -61,170 +57,22 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { TooltipProvider, StudioTooltip } from '@/components/ui/radix-tooltip';
+import { ArtworkInspectorCard } from '@/components/ui/radix-hover-card';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/radix-dropdown';
+import { useGsapTilt } from '@/hooks/use-gsap-tilt';
+import { motion, AnimatePresence } from 'framer-motion';
 
-type View =
-  | 'explore'
-  | 'image'
-  | 'video'
-  | 'audio'
-  | 'edit'
-  | 'cinema'
-  | 'marketing'
-  | 'canvas'
-  | 'presets'
-  | 'library'
-  | 'saved';
-type Work = {
-  id: string;
-  title: string;
-  image: string;
-  category: string;
-  prompt: string;
-  author: string;
-  source?: string;
-};
-type Draft = {
-  id: string;
-  title: string;
-  prompt: string;
-  mode: View;
-  model: string;
-  ratio: string;
-  created: string;
-  scenes?: { id: string; text: string }[];
-  motion?: string;
-  duration?: string;
-  brand?: string;
-};
-const hero = '/frame-chrome.png';
-const works: Work[] = [
-  {
-    id: 'red',
-    title: 'After hours',
-    image:
-      'https://images.unsplash.com/photo-1742163512400-7af30b2d17cc?auto=format&fit=crop&w=900&q=85',
-    category: 'Chân dung',
-    author: 'Jay Soundo · Unsplash',
-    source: 'https://unsplash.com/photos/0KS30qLnM_8',
-    prompt:
-      'An editorial portrait illuminated by deep red light, rich shadows, subtle grain, cinematic close-up, fashion photography.',
-  },
-  {
-    id: 'dune',
-    title: 'The quiet between',
-    image:
-      'https://images.unsplash.com/photo-1564107628966-daff03746bee?auto=format&fit=crop&w=900&q=85',
-    category: 'Thiên nhiên',
-    author: 'Martin Sanchez · Unsplash',
-    source: 'https://unsplash.com/photos/rFh890jKgcs',
-    prompt:
-      'Aerial view of sculptural desert dunes, soft evening light, sweeping curves, warm terracotta tones, cinematic wide shot.',
-  },
-  {
-    id: 'building',
-    title: 'Future, by design',
-    image:
-      'https://images.unsplash.com/photo-1515986503437-c617811ba008?auto=format&fit=crop&w=900&q=85',
-    category: 'Kiến trúc',
-    author: 'Road Trip with Raj · Unsplash',
-    source: 'https://unsplash.com/photos/xrCNPGLk1wk',
-    prompt:
-      'Sculptural futuristic architecture at twilight, sweeping white curves, deep blue sky, minimalist composition, architectural photography.',
-  },
-  {
-    id: 'flower',
-    title: 'A different kind of bloom',
-    image:
-      'https://images.unsplash.com/photo-1746126087099-e3e743d42f70?auto=format&fit=crop&w=900&q=85',
-    category: 'Thiên nhiên',
-    author: 'Dmytro Koplyk · Unsplash',
-    source: 'https://unsplash.com/photos/mA2BYYaFVRU',
-    prompt:
-      'A vivid purple flower against pure black, macro photography, delicate translucent petals, dramatic studio lighting.',
-  },
-  {
-    id: 'chrome',
-    title: 'Beyond the ordinary',
-    image: hero,
-    category: 'Trừu tượng',
-    author: 'FRAME Originals',
-    prompt:
-      'A liquid chrome sculpture suspended above volcanic sand at sunset, surreal cinematic lighting, dramatic reflections, 35mm film.',
-  },
-  {
-    id: 'car',
-    title: 'Chasing the light',
-    image:
-      'https://images.unsplash.com/photo-1683916136420-f0981b6dd5dd?auto=format&fit=crop&w=900&q=85',
-    category: 'Sản phẩm',
-    author: 'noir. · Unsplash',
-    source: 'https://unsplash.com/photos/3vz86OsQcKY',
-    prompt:
-      'A red sports car driving through a tunnel, dramatic light trails, cinematic motion blur, low camera angle, high contrast.',
-  },
-];
-const modes = [
-  {
-    id: 'image' as View,
-    name: 'Tạo hình ảnh',
-    sub: 'Biến ý tưởng thành hình',
-    icon: ImageIcon,
-  },
-  {
-    id: 'video' as View,
-    name: 'Tạo video',
-    sub: 'Khung hình thành chuyển động',
-    icon: Film,
-  },
-  {
-    id: 'cinema' as View,
-    name: 'Cinema Studio',
-    sub: 'Kể câu chuyện của bạn',
-    icon: Clapperboard,
-  },
-  {
-    id: 'edit' as View,
-    name: 'Chỉnh sửa ảnh',
-    sub: 'Hoàn thiện từng chi tiết',
-    icon: WandSparkles,
-  },
-  {
-    id: 'audio' as View,
-    name: 'Âm thanh',
-    sub: 'Thêm tiếng nói cho ý tưởng',
-    icon: AudioLines,
-  },
-];
-const labels: Record<View, string> = {
-  explore: 'Khám phá',
-  image: 'Tạo hình ảnh',
-  video: 'Tạo video',
-  audio: 'Âm thanh',
-  edit: 'Chỉnh sửa',
-  cinema: 'Cinema Studio',
-  marketing: 'Brand Studio',
-  canvas: 'Canvas',
-  presets: 'Motion presets',
-  library: 'Thư viện của tôi',
-  saved: 'Đã lưu',
-};
-const motions = [
-  'Dolly in',
-  'Orbit 360°',
-  'Crane up',
-  'Handheld',
-  'FPV fly-through',
-  'Slow zoom',
-];
-const categories = [
-  'Tất cả',
-  'Điện ảnh',
-  'Chân dung',
-  'Thiên nhiên',
-  'Trừu tượng',
-  'Kiến trúc',
-  'Sản phẩm',
-];
+gsap.registerPlugin(useGSAP);
+
 function Picker({
   value,
   onChange,
@@ -249,28 +97,310 @@ function Picker({
     </Select>
   );
 }
-export default function CreativeApp() {
-  return (
-    <SidebarProvider
-      style={{ '--sidebar-width': '218px' } as React.CSSProperties}
-    >
-      <Studio />
-    </SidebarProvider>
+
+function HeroSection({
+  onRemix,
+  onDetail,
+}: {
+  onRemix: (w: Work) => void;
+  onDetail: (w: Work) => void;
+}) {
+  const heroRef = useRef<HTMLElement>(null);
+  const { onMouseMove, onMouseLeave } = useGsapTilt({
+    maxRotation: 3,
+    scale: 1.008,
+  });
+
+  useGSAP(
+    () => {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      tl.fromTo(
+        heroRef.current,
+        { opacity: 0, scale: 0.97 },
+        { opacity: 1, scale: 1, duration: 0.7 },
+      )
+        .fromTo(
+          '.hero-tag',
+          { opacity: 0, y: -10 },
+          { opacity: 1, y: 0, duration: 0.4 },
+          '-=0.35',
+        )
+        .fromTo(
+          '.hero-copy h2',
+          { opacity: 0, y: 22 },
+          { opacity: 1, y: 0, duration: 0.55 },
+          '-=0.3',
+        )
+        .fromTo(
+          '.hero-copy p',
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.45 },
+          '-=0.35',
+        )
+        .fromTo(
+          '.hero-copy .button',
+          { opacity: 0, scale: 0.9 },
+          { opacity: 1, scale: 1, duration: 0.4 },
+          '-=0.3',
+        )
+        .fromTo(
+          '.hero-bottom',
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.4 },
+          '-=0.2',
+        );
+    },
+    { scope: heroRef },
   );
+
+  return (
+    <section
+      ref={heroRef}
+      className="hero-card"
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+    >
+      <NextImage
+        fill
+        preload
+        sizes="100vw"
+        src={hero}
+        alt="Surreal liquid chrome artwork suspended above volcanic sand at sunset"
+      />
+      <div className="hero-shade" />
+      <div className="hero-copy">
+        <span className="hero-tag">
+          <span />
+          APEXA ORIGINALS <span className="tag-line" /> VOLUME 01
+        </span>
+        <h2>
+          Make the
+          <br />
+          unimagined.
+        </h2>
+        <p>
+          From a single thought.
+          <br />
+          To cinematic frames.
+        </p>
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="button light"
+          onClick={() => onRemix(works[4])}
+        >
+          Start creating <ArrowUpRight size={17} />
+        </motion.button>
+      </div>
+      <div className="hero-bottom">
+        <span>
+          <Sparkles size={14} /> IMAGINED WITH APEXA
+        </span>
+        <StudioTooltip content="Inspect Beyond the ordinary artwork">
+          <button
+            aria-label="View Beyond the ordinary artwork"
+            onClick={() => onDetail(works[4])}
+          >
+            <ArrowUpRight size={21} />
+          </button>
+        </StudioTooltip>
+      </div>
+      <span className="hero-counter">
+        01 <span>/ 01</span>
+      </span>
+    </section>
+  );
+}
+
+function WorkCardItem({
+  w,
+  isSaved,
+  onToggleSave,
+  onOpenDetail,
+  onRemix,
+  onCopyPrompt,
+}: {
+  w: Work;
+  isSaved: boolean;
+  onToggleSave: (id: string) => void;
+  onOpenDetail: (w: Work) => void;
+  onRemix: (w: Work) => void;
+  onCopyPrompt: (prompt: string) => void;
+}) {
+  const { onMouseMove, onMouseLeave } = useGsapTilt({
+    maxRotation: 5,
+    scale: 1.015,
+  });
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.18 } }}
+      transition={{
+        type: 'spring',
+        stiffness: 400,
+        damping: 32,
+        mass: 0.8,
+      }}
+      className={'work-card work-' + w.id}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+    >
+      <ArtworkInspectorCard work={w} onRemix={onRemix}>
+        <button
+          className="work-image"
+          onClick={() => onOpenDetail(w)}
+          aria-label={`View ${w.title}`}
+        >
+          <NextImage
+            fill
+            src={w.image}
+            alt={w.title}
+            sizes={
+              w.id === 'chrome' || w.id === 'car'
+                ? '(max-width: 1000px) 100vw, 50vw'
+                : '(max-width: 767px) 100vw, (max-width: 1000px) 50vw, 25vw'
+            }
+          />
+          <span className="work-type">
+            {w.id === 'chrome' ? (
+              <Sparkles size={12} />
+            ) : (
+              <ImageIcon size={12} />
+            )}{' '}
+            {w.id === 'chrome' ? 'AI ORIGINAL' : 'INSPIRATION'}
+          </span>
+          <span className="work-hover">
+            <ArrowUpRight />
+            Explore concept
+          </span>
+        </button>
+      </ArtworkInspectorCard>
+
+      <div className="card-actions-top">
+        <StudioTooltip
+          content={isSaved ? 'Remove from saved' : 'Save to collection'}
+          side="top"
+        >
+          <button
+            className={'save-work ' + (isSaved ? 'is-saved' : '')}
+            onClick={() => onToggleSave(w.id)}
+            aria-label={
+              isSaved ? 'Remove ' + w.title + ' from saved' : 'Save ' + w.title
+            }
+          >
+            <Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />
+          </button>
+        </StudioTooltip>
+
+        <DropdownMenu>
+          <StudioTooltip content="More actions" side="top">
+            <DropdownMenuTrigger asChild>
+              <button
+                className="card-more-btn"
+                aria-label={`More options for ${w.title}`}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+          </StudioTooltip>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onRemix(w)}>
+              <WandSparkles size={14} className="text-[#00d2ff]" />
+              <span>Remix in Studio</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onCopyPrompt(w.prompt)}>
+              <Copy size={14} />
+              <span>Copy Prompt</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onToggleSave(w.id)}>
+              <Bookmark size={14} />
+              <span>{isSaved ? 'Remove Bookmark' : 'Bookmark Art'}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpenDetail(w)}>
+              <ArrowUpRight size={14} />
+              <span>Inspect Details</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <button
+        type="button"
+        className="work-info"
+        onClick={() => onOpenDetail(w)}
+        aria-label={`View details for ${w.title}`}
+      >
+        <div>
+          <h3>{w.title}</h3>
+          <p>{w.author}</p>
+        </div>
+        <ArrowUpRight size={17} />
+      </button>
+    </motion.div>
+  );
+}
+
+function MotionCardItem({
+  m,
+  index,
+  previewImage,
+  onSelect,
+}: {
+  m: string;
+  index: number;
+  previewImage: string;
+  onSelect: () => void;
+}) {
+  const { onMouseMove, onMouseLeave } = useGsapTilt({
+    maxRotation: 5,
+    scale: 1.02,
+  });
+
+  return (
+    <button
+      className="motion-card"
+      onClick={onSelect}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+    >
+      <NextImage
+        fill
+        sizes="(max-width: 767px) 50vw, 33vw"
+        src={previewImage}
+        alt="Camera motion reference preview"
+      />
+      <span className="motion-number">0{index + 1}</span>
+      <div>
+        <MousePointer2 />
+        <h3>{m}</h3>
+        <span>
+          Apply motion <ArrowUpRight size={15} />
+        </span>
+      </div>
+    </button>
+  );
+}
+
+export default function CreativeApp() {
+  return <Studio />;
 }
 function Studio() {
   const [brand, setBrand] = useState('');
   const [view, setView] = useState<View>('explore');
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('Tất cả');
+  const [category, setCategory] = useState('All');
   const [detail, setDetail] = useState<Work | null>(null);
   const [saved, setSaved] = useState<string[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('FRAME Image');
+  const [model, setModel] = useState('Apexa Image');
   const [ratio, setRatio] = useState('16:9');
-  const [duration, setDuration] = useState('5 giây');
-  const [motion, setMotion] = useState('Dolly in');
+  const [duration, setDuration] = useState('5s');
+  const [cameraMotion, setCameraMotion] = useState('Dolly in');
   const [notice, setNotice] = useState('');
   const [help, setHelp] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -283,84 +413,223 @@ function Studio() {
   const [scenes, setScenes] = useState([
     {
       id: '1',
-      text: 'Toàn cảnh mở đầu — ánh sáng bình minh trên những đụn cát.',
+      text: 'Opening wide shot — dawn light sweeps across sculpted sand dunes.',
     },
   ]);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { setOpenMobile } = useSidebar();
-  useEffect(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem('frame-local-v1') || '{}');
-      setSaved(
-        Array.isArray(p.saved)
-          ? p.saved.filter((x: unknown) => typeof x === 'string')
-          : [],
-      );
-      setDrafts(
-        Array.isArray(p.drafts)
-          ? p.drafts.filter(
-              (x: Draft) =>
-                x && typeof x.prompt === 'string' && x.mode in labels,
-            )
-          : [],
-      );
-    } catch {}
-    const v = location.hash.slice(1) as View;
-    if (v in labels) {
-      setView(v);
-      setModel(v === 'video' || v === 'cinema' ? 'FRAME Video' : 'FRAME Image');
+  const studioRef = useRef<HTMLDivElement>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [headerCompact, setHeaderCompact] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
+
+  const copyPromptToClipboard = useCallback((text: string) => {
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(text);
+      setNotice('Prompt copied to clipboard!');
     }
+  }, []);
+
+  useGSAP(
+    () => {
+      // Animate page heading on view change
+      gsap.fromTo(
+        '.page-heading',
+        { opacity: 0, y: -16 },
+        { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' },
+      );
+
+      // Animate quick tools
+      if (view === 'explore') {
+        gsap.fromTo(
+          '.quick-tools button',
+          { opacity: 0, y: 14, scale: 0.98 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.4,
+            stagger: 0.05,
+            ease: 'power2.out',
+            delay: 0.25,
+          },
+        );
+      }
+
+      // Animate motion cards
+      if (view === 'presets') {
+        gsap.fromTo(
+          '.motion-grid .motion-card',
+          { opacity: 0, y: 18, scale: 0.96 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.45,
+            stagger: 0.04,
+            ease: 'power2.out',
+            delay: 0.1,
+          },
+        );
+      }
+
+      // Animate studio creator panels when in image/video/cinema/canvas/audio
+      if (
+        [
+          'image',
+          'video',
+          'cinema',
+          'canvas',
+          'audio',
+          'edit',
+          'marketing',
+        ].includes(view)
+      ) {
+        gsap.fromTo(
+          '.studio-layout, .cinema-layout, .canvas-layout, .marketing-layout',
+          { opacity: 0, y: 15 },
+          { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' },
+        );
+      }
+    },
+    { scope: studioRef, dependencies: [view] },
+  );
+
+  const navigate = useCallback((v: View) => {
+    setView(v);
+    location.hash = v;
+    setMobileMenuOpen(false);
+    setCmdOpen(false);
+    setResult(null);
+    setQuery('');
+    setModel(v === 'video' || v === 'cinema' ? 'Apexa Video' : 'Apexa Image');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const raw =
+          localStorage.getItem('apexa-local-v1') ||
+          localStorage.getItem('frame-local-v1');
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (Array.isArray(p.saved)) {
+            setSaved(p.saved.filter((x: unknown) => typeof x === 'string'));
+          }
+          if (Array.isArray(p.drafts)) {
+            setDrafts(
+              p.drafts.filter(
+                (x: Draft) =>
+                  x &&
+                  typeof x.prompt === 'string' &&
+                  Object.hasOwn(labels, x.mode),
+              ),
+            );
+          }
+        }
+      } catch {}
+      const v = location.hash.slice(1) as View;
+      if (Object.hasOwn(labels, v)) {
+        setView(v);
+        setModel(
+          v === 'video' || v === 'cinema' ? 'Apexa Video' : 'Apexa Image',
+        );
+      }
+    }, 0);
     const handler = () => {
       const v = location.hash.slice(1) as View;
       setView(v in labels ? v : 'explore');
-      setModel(v === 'video' || v === 'cinema' ? 'FRAME Video' : 'FRAME Image');
+      setModel(v === 'video' || v === 'cinema' ? 'Apexa Video' : 'Apexa Image');
       setResult(null);
     };
     window.addEventListener('hashchange', handler);
-    return () => window.removeEventListener('hashchange', handler);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('hashchange', handler);
+    };
   }, []);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(''), 6500);
     return () => clearTimeout(t);
   }, [notice]);
-  function navigate(v: View) {
-    setView(v);
-    location.hash = v;
-    setOpenMobile(false);
-    setResult(null);
-    setQuery('');
-    setModel(v === 'video' || v === 'cinema' ? 'FRAME Video' : 'FRAME Image');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-  function persist(nextSaved: string[], nextDrafts: Draft[]) {
+  /* Scroll-driven compact header */
+  useEffect(() => {
+    const onScroll = () => setHeaderCompact(window.scrollY > 24);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  /* Keyboard shortcuts */
+  useEffect(() => {
+    const allViews = navGroups.flatMap((g) => g.views);
+    const onKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+        return;
+      }
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('.search input')?.focus();
+        return;
+      }
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setHelp(true);
+        return;
+      }
+      if (e.key === 'n' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        navigate('image');
+        return;
+      }
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= allViews.length) {
+        e.preventDefault();
+        navigate(allViews[num - 1]);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navigate]);
+  const persist = useCallback((nextSaved: string[], nextDrafts: Draft[]) => {
     try {
       localStorage.setItem(
-        'frame-local-v1',
+        'apexa-local-v1',
         JSON.stringify({ saved: nextSaved, drafts: nextDrafts }),
       );
       return true;
     } catch {
-      setNotice('Bộ nhớ trình duyệt đã đầy. Hãy xuất bản nháp để giữ dữ liệu.');
+      setNotice(
+        'Browser storage is full. Export a brief to preserve your data.',
+      );
       return false;
     }
-  }
-  function toggleSave(id: string) {
-    const next = saved.includes(id)
-      ? saved.filter((x) => x !== id)
-      : [...saved, id];
-    if (persist(next, drafts)) setSaved(next);
-  }
-  function saveDraft() {
+  }, []);
+  const toggleSave = useCallback(
+    (id: string) => {
+      setSaved((prev) => {
+        const next = prev.includes(id)
+          ? prev.filter((x) => x !== id)
+          : [...prev, id];
+        persist(next, drafts);
+        return next;
+      });
+    },
+    [drafts, persist],
+  );
+  const saveDraft = useCallback(() => {
     if (!prompt.trim()) {
-      setNotice('Hãy viết ý tưởng trước khi lưu.');
+      setNotice('Please write a concept before saving.');
       return;
     }
     const d: Draft = {
       id: crypto.randomUUID(),
       title: prompt.slice(0, 54),
       scenes,
-      motion,
+      motion: cameraMotion,
       duration,
       brand,
       prompt,
@@ -372,29 +641,41 @@ function Studio() {
     const next = [d, ...drafts];
     if (persist(saved, next)) {
       setDrafts(next);
-      setNotice('Đã lưu bản nháp trên thiết bị này.');
+      setNotice('Draft saved on this device.');
     }
-  }
-  function download(data: Blob, name: string) {
+  }, [
+    prompt,
+    scenes,
+    cameraMotion,
+    duration,
+    brand,
+    view,
+    model,
+    ratio,
+    drafts,
+    persist,
+    saved,
+  ]);
+  const download = useCallback((data: Blob, name: string) => {
     const url = URL.createObjectURL(data);
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  function exportBrief() {
+  }, []);
+  const exportBrief = useCallback(() => {
     download(
       new Blob(
         [
           JSON.stringify(
             {
-              app: 'FRAME',
+              app: 'Apexa',
               prompt,
               model,
               ratio,
               duration,
-              motion,
+              motion: cameraMotion,
               scenes,
               brand,
             },
@@ -406,16 +687,16 @@ function Studio() {
       ),
       'frame-creative-brief.json',
     );
-    setNotice('Đã xuất creative brief.');
-  }
-  function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    setNotice('Creative brief exported.');
+  }, [download, prompt, model, ratio, duration, cameraMotion, scenes, brand]);
+  const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (
       !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
       file.size > 10 * 1024 * 1024
     ) {
-      setNotice('Chọn ảnh JPG, PNG hoặc WebP dưới 10 MB.');
+      setNotice('Please choose a JPG, PNG, or WebP image under 10 MB.');
       return;
     }
     const reader = new FileReader();
@@ -425,10 +706,10 @@ function Studio() {
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  }
-  async function generate() {
+  };
+  const generate = async () => {
     if (!prompt.trim()) {
-      setNotice('Mô tả điều bạn muốn tạo trước nhé.');
+      setNotice('Please describe what you want to create first.');
       return;
     }
     setBusy(true);
@@ -443,7 +724,7 @@ function Studio() {
           model,
           ratio,
           duration,
-          motion,
+          motion: cameraMotion,
           image: upload,
         }),
       });
@@ -452,25 +733,26 @@ function Studio() {
         type: string;
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error || 'Không thể tạo lúc này.');
+      if (!res.ok)
+        throw new Error(data.error || 'Generation is currently unavailable.');
       setResult(data);
-      setNotice('Tác phẩm đã sẵn sàng.');
+      setNotice('Your creation is ready.');
     } catch (e) {
       setNotice(
-        e instanceof Error ? e.message : 'Kết nối thất bại. Vui lòng thử lại.',
+        e instanceof Error ? e.message : 'Connection failed. Please try again.',
       );
     } finally {
       setBusy(false);
     }
-  }
-  function remix(w: Work) {
+  };
+  const remix = (w: Work) => {
     setPrompt(w.prompt);
     setDetail(null);
     navigate('image');
-  }
-  function exportImage() {
+  };
+  const exportImage = () => {
     if (!upload) {
-      setNotice('Tải ảnh của bạn lên để chỉnh sửa và xuất.');
+      setNotice('Upload an image to adjust and export.');
       return;
     }
     const im = new window.Image();
@@ -485,551 +767,649 @@ function Studio() {
       canvas.toBlob((b) => b && download(b, 'frame-edited.png'), 'image/png');
     };
     im.src = upload;
-  }
+  };
   const visible = works.filter(
     (w) =>
-      (category === 'Tất cả' ||
+      (category === 'All' ||
         w.category === category ||
-        (category === 'Điện ảnh' && ['chrome', 'car'].includes(w.id))) &&
+        (category === 'Cinematic' && ['chrome', 'car'].includes(w.id))) &&
       `${w.title} ${w.category} ${w.prompt}`
         .toLowerCase()
         .includes(query.toLowerCase()) &&
       (view !== 'saved' || saved.includes(w.id)),
   );
-  const navItem = (id: View, Icon: typeof Compass, badge?: string) => (
-    <SidebarMenuItem key={id}>
-      <SidebarMenuButton
-        className="nav-item"
-        isActive={view === id}
-        onClick={() => navigate(id)}
-      >
-        <Icon />
-        <span>{labels[id]}</span>
-        {badge && <em className="nav-badge">{badge}</em>}
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
+  const navLabel = (id: View) =>
+    (shortLabels[id] ?? labels[id]).replace(/ (Generation|& Voice)/, '');
   return (
-    <>
-      <Sidebar className="frame-sidebar">
-        <SidebarHeader>
-          <button
-            className="brand"
-            onClick={() => navigate('explore')}
-            aria-label="FRAME trang chủ"
-          >
-            <Aperture />
-            <span>
-              frame<span className="brand-dot">.</span>
-            </span>
-          </button>
-          <button className="workspace" onClick={() => setHelp(true)}>
-            <span className="workspace-icon">H</span>
-            <span>
-              Personal workspace<small>Không gian của bạn</small>
-            </span>
-            <ChevronDown size={14} />
-          </button>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>{navItem('explore', Compass)}</SidebarMenu>
-          <div className="nav-label">SÁNG TẠO</div>
-          <SidebarMenu>
-            {navItem('image', ImageIcon)}
-            {navItem('video', Film)}
-            {navItem('audio', AudioLines)}
-            {navItem('edit', Scissors)}
-          </SidebarMenu>
-          <div className="nav-label">STUDIO</div>
-          <SidebarMenu>
-            {navItem('cinema', Clapperboard, 'MỚI')}
-            {navItem('marketing', Box)}
-            {navItem('canvas', Layers)}
-            {navItem('presets', MousePointer2)}
-          </SidebarMenu>
-          <div className="nav-label">KHÔNG GIAN CỦA BẠN</div>
-          <SidebarMenu>
-            {navItem('library', FolderOpen)}
-            {navItem('saved', Bookmark, String(saved.length))}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <div className="plan-card">
-            <div>
-              <Zap size={15} />
-              <b>Ý tưởng không giới hạn</b>
+    <TooltipProvider delayDuration={150}>
+      <div ref={studioRef} className="frame-app-root">
+        {/* ── Header navigation bar ── */}
+        <header className={`frame-header${headerCompact ? ' compact' : ''}`}>
+          <div className="header-inner">
+            {/* Brand logo */}
+            <StudioTooltip content="Apexa Home · Explore" side="bottom">
+              <button
+                className="header-brand"
+                onClick={() => navigate('explore')}
+                aria-label="Apexa home"
+              >
+                <Aperture />
+                <span>
+                  apexa<span className="brand-dot">.</span>
+                </span>
+              </button>
+            </StudioTooltip>
+
+            {/* Desktop scrollable nav */}
+            <nav className="header-nav" aria-label="Main navigation">
+              <div className="header-nav-scroll">
+                {navGroups.map((group, gi) => (
+                  <span key={gi} className="nav-group">
+                    {gi > 0 && <span className="nav-divider" aria-hidden />}
+                    {group.views.map((id) => (
+                      <button
+                        key={id}
+                        className={`nav-link${view === id ? ' active' : ''}`}
+                        onClick={() => navigate(id)}
+                      >
+                        {view === id && (
+                          <motion.span
+                            layoutId="headerActivePill"
+                            className="nav-active-pill"
+                            transition={{
+                              type: 'spring',
+                              stiffness: 480,
+                              damping: 36,
+                            }}
+                          />
+                        )}
+                        <span className="nav-link-content">
+                          {navLabel(id)}
+                          {badges[id] && (
+                            <em className="nav-badge">{badges[id]}</em>
+                          )}
+                          {id === 'saved' && saved.length > 0 && (
+                            <em className="nav-badge">{saved.length}</em>
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </span>
+                ))}
+                <span className="nav-group">
+                  <span className="nav-divider" aria-hidden />
+                  <Link className="nav-link" href="/production">
+                    <Clapperboard size={14} />
+                    <span className="nav-link-content">Production Suite</span>
+                  </Link>
+                </span>
+              </div>
+            </nav>
+
+            {/* Right actions */}
+            <div className="header-actions">
+              <StudioTooltip content="Help & Shortcuts" kbd="?" side="bottom">
+                <button className="header-action" onClick={() => setHelp(true)}>
+                  <CircleHelp size={16} />
+                  <span>Help</span>
+                </button>
+              </StudioTooltip>
+              <StudioTooltip content="Notifications" side="bottom">
+                <button
+                  className="icon-button notification"
+                  aria-label="Notifications"
+                  onClick={() =>
+                    setNotice('You are all caught up. Welcome to Apexa!')
+                  }
+                >
+                  <Bell size={18} />
+                </button>
+              </StudioTooltip>
+              <span className="header-divider" />
+              <AccountMenu />
+              {/* Mobile hamburger */}
+              <button
+                className="mobile-menu-toggle"
+                aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
             </div>
-            <p>Một không gian. Mọi công cụ.</p>
-            <button onClick={() => setHelp(true)}>
-              Khám phá FRAME <ArrowUpRight size={14} />
-            </button>
-          </div>
-          <button className="help-button" onClick={() => setHelp(true)}>
-            <CircleHelp size={17} />
-            Trợ giúp & thông tin
-            <ArrowUpRight size={14} />
-          </button>
-          <div className="profile">
-            <span className="avatar">H</span>
-            <div>
-              Hoàng<small>Personal account</small>
-            </div>
-            <button
-              className="icon-button"
-              aria-label="Cài đặt tài khoản"
-              onClick={() => setHelp(true)}
-            >
-              <MoreHorizontal />
-            </button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <div className="app-shell">
-        <header className="topbar">
-          <div className="breadcrumb">
-            <SidebarTrigger className="mobile-trigger" />
-            <span>Workspace</span>
-            <span className="slash">/</span>
-            <b>{labels[view]}</b>
-          </div>
-          <div className="header-actions">
-            <button className="demo-pill" onClick={() => setHelp(true)}>
-              <span />
-              Bản trải nghiệm
-            </button>
-            <button
-              className="icon-button notification"
-              aria-label="Thông báo"
-              onClick={() =>
-                setNotice('Bạn đã cập nhật tất cả. Chào mừng đến với FRAME!')
-              }
-            >
-              <Bell size={18} />
-            </button>
-            <span className="header-divider" />
-            <button
-              className="avatar small"
-              aria-label="Tài khoản"
-              onClick={() => setHelp(true)}
-            >
-              H
-            </button>
           </div>
         </header>
-        <main className="main-content">
-          {view === 'explore' || view === 'saved' || view === 'presets' ? (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    YOUR NEXT GREAT IDEA STARTS HERE
-                  </div>
-                  <h1>
-                    {view === 'saved'
-                      ? 'Bộ sưu tập cảm hứng'
-                      : view === 'presets'
-                        ? 'Một chuyển động. Vạn cảm xúc.'
-                        : 'Không giới hạn trí tưởng tượng.'}
-                  </h1>
-                  <p>
-                    {view === 'saved'
-                      ? 'Những ý tưởng bạn muốn quay lại.'
-                      : view === 'presets'
-                        ? 'Chọn góc máy, định hình câu chuyện của bạn.'
-                        : 'Tạo những điều chưa từng có. Theo cách của bạn.'}
-                  </p>
-                </div>
-                <button
-                  className="button primary"
-                  onClick={() => navigate('image')}
-                >
-                  <Plus size={17} />
-                  Tạo mới
-                </button>
-              </div>
-              {view === 'explore' && (
-                <>
-                  <section className="hero-card">
-                    <img
-                      src={hero}
-                      alt="Tác phẩm chrome siêu thực trên cát núi lửa lúc hoàng hôn"
-                    />
-                    <div className="hero-shade" />
-                    <div className="hero-copy">
-                      <span className="hero-tag">
-                        <span />
-                        FRAME ORIGINALS <span className="tag-line" /> VOLUME 01
-                      </span>
-                      <h2>
-                        Make the
-                        <br />
-                        unimagined.
-                      </h2>
-                      <p>
-                        Từ một tia ý tưởng.
-                        <br />
-                        Đến những khung hình không tưởng.
-                      </p>
+
+        {/* ── Mobile slide-down menu ── */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              key="mobile-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Mobile navigation"
+              tabIndex={-1}
+              className="mobile-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={(e: React.MouseEvent) => {
+                if (e.target === e.currentTarget) setMobileMenuOpen(false);
+              }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === 'Escape') setMobileMenuOpen(false);
+              }}
+            >
+              <motion.nav
+                className="mobile-menu"
+                aria-label="Mobile navigation menu"
+                initial={{ y: -18, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -18, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              >
+                {navGroups.map((group, gi) => (
+                  <div key={gi} className="mobile-nav-group">
+                    {group.label && (
+                      <div className="mobile-nav-label">{group.label}</div>
+                    )}
+                    {group.views.map((id) => (
                       <button
-                        className="button light"
-                        onClick={() => remix(works[4])}
+                        key={id}
+                        className={`mobile-nav-link${view === id ? ' active' : ''}`}
+                        onClick={() => navigate(id)}
                       >
-                        Bắt đầu sáng tạo <ArrowUpRight size={17} />
-                      </button>
-                    </div>
-                    <div className="hero-bottom">
-                      <span>
-                        <Sparkles size={14} /> IMAGINED WITH FRAME
-                      </span>
-                      <button
-                        aria-label="Xem tác phẩm Beyond the ordinary"
-                        onClick={() => setDetail(works[4])}
-                      >
-                        <ArrowUpRight size={21} />
-                      </button>
-                    </div>
-                    <span className="hero-counter">
-                      01 <span>/ 01</span>
-                    </span>
-                  </section>
-                  <section
-                    className="quick-tools"
-                    aria-label="Công cụ sáng tạo"
-                  >
-                    {modes.map((m) => (
-                      <button key={m.id} onClick={() => navigate(m.id)}>
-                        <span className={'tool-icon ' + m.id}>
-                          <m.icon size={21} />
-                        </span>
-                        <span>
-                          <b>{m.name}</b>
-                          <small>{m.sub}</small>
-                        </span>
-                        <ArrowUpRight className="tool-arrow" size={16} />
+                        {labels[id]}
+                        {badges[id] && (
+                          <em className="nav-badge">{badges[id]}</em>
+                        )}
+                        {id === 'saved' && saved.length > 0 && (
+                          <em className="nav-badge">{saved.length}</em>
+                        )}
                       </button>
                     ))}
-                  </section>
-                </>
-              )}
-              {view === 'presets' ? (
-                <div className="motion-grid">
-                  {motions.map((m, i) => (
-                    <button
-                      className="motion-card"
-                      key={m}
-                      onClick={() => {
-                        setMotion(m);
-                        navigate('video');
-                      }}
+                  </div>
+                ))}
+                <div className="mobile-nav-footer">
+                  <Link className="mobile-nav-link" href="/production">
+                    <Clapperboard size={16} /> Production Suite
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setHelp(true);
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <CircleHelp size={16} /> Help & Information
+                  </button>
+                </div>
+              </motion.nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Command palette (Ctrl+K) ── */}
+        <AnimatePresence>
+          {cmdOpen && (
+            <motion.div
+              key="cmd-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Command palette"
+              tabIndex={-1}
+              className="cmd-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e: React.MouseEvent) => {
+                if (e.target === e.currentTarget) setCmdOpen(false);
+              }}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === 'Escape') setCmdOpen(false);
+              }}
+            >
+              <motion.div
+                className="cmd-palette"
+                initial={{ scale: 0.94, opacity: 0, y: -14 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.94, opacity: 0, y: -14 }}
+                transition={{ type: 'spring', stiffness: 460, damping: 30 }}
+              >
+                <div className="cmd-search">
+                  <Search size={18} />
+                  <input
+                    ref={(el) => {
+                      el?.focus();
+                    }}
+                    placeholder="Search views, actions, presets…"
+                    onChange={(e) => {
+                      const q = e.target.value.toLowerCase();
+                      if (!q) return;
+                      const match = navGroups
+                        .flatMap((g) => g.views)
+                        .find(
+                          (id) =>
+                            labels[id].toLowerCase().includes(q) ||
+                            id.includes(q),
+                        );
+                      if (match) navigate(match);
+                    }}
+                    onKeyDown={(e) => e.key === 'Escape' && setCmdOpen(false)}
+                  />
+                  <kbd>ESC</kbd>
+                </div>
+                <div className="cmd-items">
+                  {navGroups.flatMap((g) =>
+                    g.views.map((id) => (
+                      <button
+                        key={id}
+                        className="cmd-item"
+                        onClick={() => navigate(id)}
+                      >
+                        <span>{labels[id]}</span>
+                        {badges[id] && (
+                          <em className="nav-badge">{badges[id]}</em>
+                        )}
+                      </button>
+                    )),
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Main content ── */}
+        <div className="app-main">
+          <main className="main-content">
+            {view === 'explore' || view === 'saved' || view === 'presets' ? (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <h1>
+                      {view === 'saved'
+                        ? 'Curated Inspiration'
+                        : view === 'presets'
+                          ? 'One movement. Endless emotion.'
+                          : 'Unbounded Imagination.'}
+                    </h1>
+                    <p>
+                      {view === 'saved'
+                        ? 'Concepts and styles you want to revisit.'
+                        : view === 'presets'
+                          ? 'Choose camera motion and direct your visual story.'
+                          : 'Make the unimagined. In your own vision.'}
+                    </p>
+                  </div>
+                  <StudioTooltip
+                    content="Create new project"
+                    kbd="N"
+                    side="left"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="button primary"
+                      onClick={() => navigate('image')}
                     >
-                      <img
-                        src={works[i % works.length].image}
-                        alt="Ảnh tham chiếu cho chuyển động camera"
+                      <Plus size={17} />
+                      New Project
+                    </motion.button>
+                  </StudioTooltip>
+                </div>
+                {view === 'explore' && (
+                  <>
+                    <HeroSection onRemix={remix} onDetail={setDetail} />
+                    <section
+                      className="quick-tools"
+                      aria-label="Creative tools"
+                    >
+                      {modes.map((m) => (
+                        <StudioTooltip
+                          key={m.id}
+                          content={`Launch ${m.name}`}
+                          side="bottom"
+                        >
+                          <motion.button
+                            whileHover={{ y: -3 }}
+                            whileTap={{ scale: 0.98 }}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 450,
+                              damping: 25,
+                            }}
+                            onClick={() => navigate(m.id)}
+                          >
+                            <span className={'tool-icon ' + m.id}>
+                              <m.icon size={21} />
+                            </span>
+                            <span>
+                              <b>{m.name}</b>
+                              <small>{m.sub}</small>
+                            </span>
+                            <ArrowUpRight className="tool-arrow" size={16} />
+                          </motion.button>
+                        </StudioTooltip>
+                      ))}
+                    </section>
+                  </>
+                )}
+                {view === 'presets' ? (
+                  <div className="motion-grid">
+                    {motions.map((m, i) => (
+                      <MotionCardItem
+                        key={m}
+                        m={m}
+                        index={i}
+                        previewImage={works[i % works.length].image}
+                        onSelect={() => {
+                          setCameraMotion(m);
+                          navigate('video');
+                        }}
                       />
-                      <span className="motion-number">0{i + 1}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <div className="section-heading">
                       <div>
-                        <MousePointer2 />
-                        <h3>{m}</h3>
-                        <span>
-                          Áp dụng chuyển động <ArrowUpRight size={15} />
+                        <span className="section-mark" />
+                        <h2>
+                          {view === 'saved'
+                            ? 'Saved for your next production'
+                            : 'Designed for your imagination'}
+                        </h2>
+                        <span className="subtle-label">
+                          CURATED INSPIRATION
                         </span>
                       </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div className="section-heading">
-                    <div>
-                      <span className="section-mark" />
-                      <h2>
-                        {view === 'saved'
-                          ? 'Đã lưu cho lần sáng tạo tiếp theo'
-                          : 'Dành cho trí tưởng tượng của bạn'}
-                      </h2>
-                      <span className="subtle-label">CURATED INSPIRATION</span>
+                      <button
+                        className="text-button"
+                        onClick={() => navigate('presets')}
+                      >
+                        Explore presets <ArrowRight size={16} />
+                      </button>
                     </div>
-                    <button
-                      className="text-button"
-                      onClick={() => navigate('presets')}
-                    >
-                      Khám phá presets <ArrowRight size={16} />
-                    </button>
-                  </div>
-                  <div className="discovery-controls">
-                    <Tabs
-                      value={category}
-                      onValueChange={(v) => setCategory(String(v))}
-                    >
-                      <TabsList className="category-tabs" variant="line">
-                        {categories.map((c) => (
-                          <TabsTrigger key={c} value={c}>
-                            {c}
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-                    </Tabs>
-                    <label className="search">
-                      <Search size={16} />
-                      <input
-                        aria-label="Tìm cảm hứng"
-                        placeholder="Tìm cảm hứng..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                      />
-                      {query && (
-                        <button
-                          aria-label="Xóa tìm kiếm"
-                          onClick={() => setQuery('')}
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </label>
-                  </div>
-                  <div className="gallery">
-                    {visible.map((w) => (
-                      <article className={'work-card work-' + w.id} key={w.id}>
-                        <button
-                          className="work-image"
-                          onClick={() => setDetail(w)}
-                        >
-                          <img src={w.image} alt={w.title} loading="lazy" />
-                          <span className="work-type">
-                            {w.id === 'chrome' ? (
-                              <Sparkles size={12} />
-                            ) : (
-                              <ImageIcon size={12} />
-                            )}{' '}
-                            {w.id === 'chrome' ? 'AI ORIGINAL' : 'INSPIRATION'}
-                          </span>
-                          <span className="work-hover">
-                            <ArrowUpRight />
-                            Khám phá ý tưởng
-                          </span>
-                        </button>
-                        <button
-                          className={
-                            'save-work ' +
-                            (saved.includes(w.id) ? 'is-saved' : '')
-                          }
-                          onClick={() => toggleSave(w.id)}
-                          aria-label={
-                            saved.includes(w.id)
-                              ? 'Bỏ lưu ' + w.title
-                              : 'Lưu ' + w.title
-                          }
-                        >
-                          <Bookmark
-                            size={16}
-                            fill={
-                              saved.includes(w.id) ? 'currentColor' : 'none'
-                            }
+                    <div className="discovery-controls">
+                      <div
+                        className="motion-category-tabs"
+                        role="tablist"
+                        aria-label="Inspiration categories"
+                      >
+                        {categories.map((c) => {
+                          const isActive = category === c;
+                          return (
+                            <button
+                              key={c}
+                              role="tab"
+                              aria-selected={isActive}
+                              className={`motion-tab-btn${isActive ? ' is-active' : ''}`}
+                              onClick={() => setCategory(c)}
+                            >
+                              {isActive && (
+                                <motion.span
+                                  layoutId="activeCategoryPill"
+                                  className="motion-tab-pill"
+                                  transition={{
+                                    type: 'spring',
+                                    stiffness: 480,
+                                    damping: 36,
+                                  }}
+                                />
+                              )}
+                              <span className="motion-tab-text">{c}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <label className="search">
+                        <Search size={16} />
+                        <input
+                          aria-label="Search inspiration"
+                          placeholder="Search inspiration..."
+                          value={query}
+                          onChange={(e) => setQuery(e.target.value)}
+                        />
+                        {query && (
+                          <button
+                            aria-label="Clear search"
+                            onClick={() => setQuery('')}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </label>
+                    </div>
+                    <div className="gallery">
+                      <AnimatePresence mode="popLayout">
+                        {visible.map((w) => (
+                          <WorkCardItem
+                            key={w.id}
+                            w={w}
+                            isSaved={saved.includes(w.id)}
+                            onToggleSave={toggleSave}
+                            onOpenDetail={setDetail}
+                            onRemix={remix}
+                            onCopyPrompt={copyPromptToClipboard}
                           />
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                    {!visible.length && (
+                      <div className="empty-state">
+                        <Bookmark />
+                        <h3>
+                          {view === 'saved'
+                            ? 'No saved concepts yet'
+                            : 'No matching inspiration found'}
+                        </h3>
+                        <p>
+                          {view === 'saved'
+                            ? 'Bookmark artworks to keep them in your collection.'
+                            : 'Try different keywords or select All.'}
+                        </p>
+                        <button
+                          className="button secondary"
+                          onClick={() => {
+                            setQuery('');
+                            setCategory('All');
+                            if (view === 'saved') navigate('explore');
+                          }}
+                        >
+                          Explore inspiration
                         </button>
-                        <div className="work-info">
-                          <div>
-                            <h3>{w.title}</h3>
-                            <p>{w.author}</p>
-                          </div>
-                          <ArrowUpRight size={17} />
-                        </div>
-                      </article>
-                    ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : view === 'library' ? (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <h1>My Library</h1>
+                    <p>Drafts saved locally on this browser.</p>
                   </div>
-                  {!visible.length && (
-                    <div className="empty-state">
-                      <Bookmark />
-                      <h3>
-                        {view === 'saved'
-                          ? 'Chưa có ý tưởng nào được lưu'
-                          : 'Chưa tìm thấy cảm hứng phù hợp'}
-                      </h3>
-                      <p>
-                        {view === 'saved'
-                          ? 'Chạm vào biểu tượng lưu trên tác phẩm bạn thích.'
-                          : 'Thử từ khóa khác hoặc chọn Tất cả.'}
-                      </p>
-                      <button
-                        className="button secondary"
-                        onClick={() => {
-                          setQuery('');
-                          setCategory('Tất cả');
-                          if (view === 'saved') navigate('explore');
-                        }}
-                      >
-                        Khám phá ý tưởng
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          ) : view === 'library' ? (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">YOUR CREATIVE SPACE</div>
-                  <h1>Thư viện của tôi</h1>
-                  <p>Bản nháp được lưu riêng trên trình duyệt này.</p>
-                </div>
-                <button
-                  className="button primary"
-                  onClick={() => navigate('image')}
-                >
-                  <Plus size={17} />
-                  Dự án mới
-                </button>
-              </div>
-              <div className="draft-grid">
-                {drafts.map((d) => (
-                  <article className="draft-card" key={d.id}>
-                    <div className="draft-icon">
-                      <Layers />
-                    </div>
-                    <small>
-                      {labels[d.mode]} ·{' '}
-                      {new Date(d.created).toLocaleDateString('vi-VN')}
-                    </small>
-                    <h3>{d.title}</h3>
-                    <p>
-                      {d.model} · {d.ratio}
-                    </p>
-                    <div>
-                      <button
-                        className="button secondary"
-                        onClick={() => {
-                          navigate(d.mode);
-                          setPrompt(d.prompt);
-                          setModel(d.model);
-                          setRatio(d.ratio);
-                          setScenes(d.scenes || []);
-                          setMotion(d.motion || 'Dolly in');
-                          setDuration(d.duration || '5 giây');
-                          setBrand(d.brand || '');
-                        }}
-                      >
-                        Tiếp tục <ArrowUpRight size={15} />
-                      </button>
-                      <button
-                        className="icon-button"
-                        aria-label="Xóa bản nháp"
-                        onClick={() => {
-                          const next = drafts.filter((x) => x.id !== d.id);
-                          if (persist(saved, next)) {
-                            setDrafts(next);
-                            setNotice('Đã xóa bản nháp.');
-                          }
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              {!drafts.length && (
-                <div className="empty-state">
-                  <FolderOpen />
-                  <h2>Mọi ý tưởng đều bắt đầu ở đâu đó.</h2>
-                  <p>Tạo và lưu bản nháp đầu tiên của bạn.</p>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     className="button primary"
                     onClick={() => navigate('image')}
                   >
-                    Bắt đầu sáng tạo <Plus size={16} />
+                    <Plus size={17} />
+                    New Project
+                  </motion.button>
+                </div>
+                <div className="draft-grid">
+                  {drafts.map((d) => (
+                    <article className="draft-card" key={d.id}>
+                      <div className="draft-icon">
+                        <Layers />
+                      </div>
+                      <small>
+                        {labels[d.mode]} ·{' '}
+                        {new Date(d.created).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </small>
+                      <h3>{d.title}</h3>
+                      <p>
+                        {d.model} · {d.ratio}
+                      </p>
+                      <div>
+                        <button
+                          className="button secondary"
+                          onClick={() => {
+                            navigate(d.mode);
+                            setPrompt(d.prompt);
+                            setModel(d.model);
+                            setRatio(d.ratio);
+                            setScenes(d.scenes || []);
+                            setCameraMotion(d.motion || 'Dolly in');
+                            setDuration(d.duration || '5s');
+                            setBrand(d.brand || '');
+                          }}
+                        >
+                          Resume <ArrowUpRight size={15} />
+                        </button>
+                        <button
+                          className="icon-button"
+                          aria-label="Delete draft"
+                          onClick={() => {
+                            const next = drafts.filter((x) => x.id !== d.id);
+                            if (persist(saved, next)) {
+                              setDrafts(next);
+                              setNotice('Draft deleted.');
+                            }
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                {!drafts.length && (
+                  <div className="empty-state">
+                    <FolderOpen />
+                    <h2>Every production starts somewhere.</h2>
+                    <p>Create and save your first creative draft.</p>
+                    <button
+                      className="button primary"
+                      onClick={() => navigate('image')}
+                    >
+                      Start creating <Plus size={16} />
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : view === 'get' ? (
+              <GetStudio onNotice={setNotice} />
+            ) : (
+              <>
+                <div className="page-heading studio-heading">
+                  <div>
+                    <h1>
+                      {labels[view]}
+                      <span className="heading-dot">.</span>
+                    </h1>
+                    <p>
+                      {view === 'cinema'
+                        ? 'Scene by scene. Direct your narrative.'
+                        : view === 'edit'
+                          ? 'Precision adjustments. Fresh perspectives.'
+                          : view === 'audio'
+                            ? 'Give your concepts a distinct voice.'
+                            : 'One spark. Endless creative possibilities.'}
+                    </p>
+                  </div>
+                  <button className="button secondary" onClick={exportBrief}>
+                    <ArrowDownToLine size={16} />
+                    Export brief
                   </button>
                 </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="page-heading studio-heading">
-                <div>
-                  <div className="eyebrow">THE CREATIVE WORKSPACE</div>
-                  <h1>
-                    {labels[view]}
-                    <span className="heading-dot">.</span>
-                  </h1>
-                  <p>
-                    {view === 'cinema'
-                      ? 'Từng cảnh một. Câu chuyện thuộc về bạn.'
-                      : view === 'edit'
-                        ? 'Một chút tinh chỉnh. Một góc nhìn khác.'
-                        : view === 'audio'
-                          ? 'Cho những ý tưởng của bạn một tiếng nói.'
-                          : 'Một ý tưởng nhỏ. Vô vàn khả năng.'}
-                  </p>
-                </div>
-                <button className="button secondary" onClick={exportBrief}>
-                  <ArrowDownToLine size={16} />
-                  Xuất brief
-                </button>
-              </div>
-              <div className="studio-layout">
-                <section className="control-panel">
-                  <div className="panel-title">
-                    <Sparkles size={17} />
-                    <h2>
-                      {view === 'edit'
-                        ? 'Điều chỉnh hình ảnh'
-                        : 'Thiết lập sáng tạo'}
-                    </h2>
-                  </div>
-                  {view !== 'audio' && (
-                    <>
-                      <label className="field-label">
-                        Ảnh tham chiếu <span>Tùy chọn</span>
-                      </label>
-                      <button
-                        className={
-                          'upload-zone ' + (upload ? 'has-upload' : '')
-                        }
-                        onClick={() => fileRef.current?.click()}
-                      >
-                        {upload ? (
-                          <img src={upload} alt="Ảnh tham chiếu đã tải lên" />
-                        ) : (
-                          <>
-                            <Upload size={23} />
-                            <span>Tải ảnh của bạn lên</span>
-                            <small>JPG, PNG, WebP · Tối đa 10 MB</small>
-                          </>
-                        )}
-                      </button>
-                      {upload && (
-                        <button
-                          className="text-button remove-upload"
-                          onClick={() => setUpload(null)}
+                <div className="studio-layout">
+                  <section className="control-panel">
+                    <div className="panel-title">
+                      <Sparkles size={17} />
+                      <h2>
+                        {view === 'edit'
+                          ? 'Image Adjustments'
+                          : 'Creative Studio'}
+                      </h2>
+                    </div>
+                    {view !== 'audio' && (
+                      <>
+                        <label
+                          className="field-label"
+                          htmlFor="upload-zone-btn"
                         >
-                          <X size={13} />
-                          Gỡ ảnh
+                          Reference Image <span>Optional</span>
+                        </label>
+                        <button
+                          id="upload-zone-btn"
+                          className={
+                            'upload-zone ' + (upload ? 'has-upload' : '')
+                          }
+                          onClick={() => fileRef.current?.click()}
+                        >
+                          {upload ? (
+                            <NextImage
+                              src={upload}
+                              alt="Uploaded reference image"
+                              unoptimized
+                              width={400}
+                              height={118}
+                            />
+                          ) : (
+                            <>
+                              <Upload size={23} />
+                              <span>Upload your image</span>
+                              <small>JPG, PNG, WebP · Up to 10 MB</small>
+                            </>
+                          )}
                         </button>
-                      )}
-                    </>
-                  )}
-                  {view === 'marketing' && (
-                    <div className="brand-brief">
-                      <label className="field-label" htmlFor="brand">
-                        Thương hiệu / sản phẩm
-                      </label>
-                      <input
-                        id="brand"
-                        value={brand}
-                        onChange={(e) => setBrand(e.target.value)}
-                        placeholder="Ví dụ: AURA — nước hoa thiên nhiên"
-                        maxLength={160}
-                      />
-                      <label className="field-label">Bắt đầu chiến dịch</label>
-                      <div className="campaign-presets">
-                        {['Ra mắt sản phẩm', 'Social media', 'Lifestyle'].map(
-                          (style, i) => (
+                        {upload && (
+                          <button
+                            className="text-button remove-upload"
+                            onClick={() => setUpload(null)}
+                          >
+                            <X size={13} />
+                            Remove image
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {view === 'marketing' && (
+                      <div className="brand-brief">
+                        <label className="field-label" htmlFor="brand">
+                          Brand / Product Name
+                        </label>
+                        <input
+                          id="brand"
+                          value={brand}
+                          onChange={(e) => setBrand(e.target.value)}
+                          placeholder="e.g. AURA — Botanical Fragrance"
+                          maxLength={160}
+                        />
+                        <label className="field-label" htmlFor="brand">
+                          Campaign Presets
+                        </label>
+                        <div className="campaign-presets">
+                          {[
+                            'Product Launch',
+                            'Social Campaign',
+                            'Lifestyle Story',
+                          ].map((style, i) => (
                             <button
                               key={style}
                               onClick={() => {
                                 if (!brand.trim()) {
                                   setNotice(
-                                    'Nhập thương hiệu hoặc sản phẩm trước.',
+                                    'Please enter a brand or product name first.',
                                   );
                                   return;
                                 }
@@ -1042,518 +1422,474 @@ function Studio() {
                               {style}
                               <ArrowUpRight size={12} />
                             </button>
-                          ),
-                        )}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {view === 'edit' ? (
-                    <>
-                      <div className="slider-label">
-                        <label>Độ sáng</label>
-                        <span>{brightness}%</span>
-                      </div>
-                      <Slider
-                        value={[brightness]}
-                        onValueChange={(v) =>
-                          setBrightness(Array.isArray(v) ? v[0] : v)
-                        }
-                        min={20}
-                        max={180}
-                      />
-                      <div className="slider-label">
-                        <label>Độ bão hòa</label>
-                        <span>{saturation}%</span>
-                      </div>
-                      <Slider
-                        value={[saturation]}
-                        onValueChange={(v) =>
-                          setSaturation(Array.isArray(v) ? v[0] : v)
-                        }
-                        min={0}
-                        max={200}
-                      />
-                      <button
-                        className="button secondary full"
-                        onClick={() => {
-                          setBrightness(100);
-                          setSaturation(100);
-                        }}
-                      >
-                        Khôi phục gốc
-                      </button>
-                      <button
-                        className="button primary full"
-                        onClick={exportImage}
-                      >
-                        <ArrowDownToLine size={16} />
-                        Xuất ảnh PNG
-                      </button>
-                      <p className="field-hint">
-                        Chỉnh màu ngay trên thiết bị. Ảnh không được gửi đi.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <label className="field-label" htmlFor="prompt">
-                        {view === 'audio'
-                          ? 'Nội dung lời đọc'
-                          : 'Ý tưởng của bạn'}
-                        <button
-                          onClick={() =>
-                            setPrompt(
-                              works[Math.floor(Math.random() * works.length)]
-                                .prompt,
-                            )
+                    )}
+                    {view === 'edit' ? (
+                      <>
+                        <div className="slider-label">
+                          <label htmlFor="brightness-slider">Brightness</label>
+                          <span>{brightness}%</span>
+                        </div>
+                        <Slider
+                          id="brightness-slider"
+                          value={[brightness]}
+                          onValueChange={(v) =>
+                            setBrightness(Array.isArray(v) ? v[0] : v)
                           }
-                          aria-label="Gợi ý prompt"
-                        >
-                          <WandSparkles size={15} />
-                        </button>
-                      </label>
-                      <textarea
-                        id="prompt"
-                        maxLength={4000}
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder={
-                          view === 'audio'
-                            ? 'Nhập nội dung bạn muốn nghe...'
-                            : 'Mô tả chủ thể, bối cảnh, ánh sáng và cảm xúc bạn muốn truyền tải...'
-                        }
-                        rows={6}
-                      />
-                      <div className="prompt-meta">
-                        <span>{prompt.length}/4000</span>
-                        <button
-                          onClick={() => {
-                            if (prompt.trim()) {
-                              setPrompt(
-                                (
-                                  prompt +
-                                  ', cinematic composition, detailed lighting, rich color grading'
-                                ).slice(0, 4000),
-                              );
-                              setNotice('Đã thêm gợi ý ánh sáng và bố cục.');
-                            } else
-                              setNotice('Viết ý tưởng trước khi thêm gợi ý.');
-                          }}
-                        >
-                          <Sparkles size={12} />
-                          Thêm gợi ý
-                        </button>
-                      </div>
-                      {view !== 'audio' && (
-                        <>
-                          <label className="field-label">Mô hình</label>
-                          <Picker
-                            value={model}
-                            onChange={setModel}
-                            values={
-                              view === 'video' || view === 'cinema'
-                                ? ['FRAME Video']
-                                : ['FRAME Image']
-                            }
-                          />
-                          <p className="field-hint">
-                            Cần kết nối nhà cung cấp AI để tạo nội dung.
-                          </p>
-                          <div className="field-row">
-                            <div>
-                              <label className="field-label">
-                                Tỷ lệ khung hình
-                              </label>
-                              <Picker
-                                value={ratio}
-                                onChange={setRatio}
-                                values={['16:9', '9:16', '1:1', '4:3', '3:2']}
-                              />
-                            </div>
-                            <div>
-                              <label className="field-label">
-                                {view === 'video' || view === 'cinema'
-                                  ? 'Thời lượng'
-                                  : 'Chất lượng'}
-                              </label>
-                              <Picker
-                                value={
-                                  view === 'video' || view === 'cinema'
-                                    ? duration
-                                    : 'Tiêu chuẩn'
-                                }
-                                onChange={setDuration}
-                                values={
-                                  view === 'video' || view === 'cinema'
-                                    ? ['5 giây', '10 giây']
-                                    : ['Tiêu chuẩn']
-                                }
-                              />
-                            </div>
-                          </div>
-                          {(view === 'video' || view === 'cinema') && (
-                            <>
-                              <label className="field-label">
-                                Chuyển động camera
-                              </label>
-                              <Picker
-                                value={motion}
-                                onChange={setMotion}
-                                values={motions}
-                              />
-                            </>
-                          )}
-                        </>
-                      )}
-                      <div className="generation-actions">
-                        {view === 'audio' ? (
-                          <button
-                            className="button primary full"
-                            onClick={() => {
-                              if (!prompt.trim()) {
-                                setNotice('Nhập nội dung lời đọc trước.');
-                                return;
-                              }
-                              if (!('speechSynthesis' in window)) {
-                                setNotice(
-                                  'Trình duyệt này không hỗ trợ đọc văn bản.',
-                                );
-                                return;
-                              }
-                              speechSynthesis.cancel();
-                              const speech = new SpeechSynthesisUtterance(
-                                prompt,
-                              );
-                              speech.lang = 'vi-VN';
-                              speechSynthesis.speak(speech);
-                              setNotice(
-                                'Đang đọc bằng giọng có sẵn của thiết bị.',
-                              );
-                            }}
-                          >
-                            <Volume2 size={17} />
-                            Nghe thử trên thiết bị
-                          </button>
-                        ) : (
-                          <button
-                            className="button primary full"
-                            disabled={busy}
-                            onClick={generate}
-                          >
-                            {busy ? (
-                              <LoaderCircle className="spin" size={17} />
-                            ) : (
-                              <Sparkles size={17} />
-                            )}{' '}
-                            {busy
-                              ? 'Đang xử lý…'
-                              : view === 'video' || view === 'cinema'
-                                ? 'Tạo video'
-                                : 'Tạo hình ảnh'}
-                            <ArrowRight size={17} />
-                          </button>
-                        )}
+                          min={20}
+                          max={180}
+                        />
+                        <div className="slider-label">
+                          <label htmlFor="saturation-slider">Saturation</label>
+                          <span>{saturation}%</span>
+                        </div>
+                        <Slider
+                          id="saturation-slider"
+                          value={[saturation]}
+                          onValueChange={(v) =>
+                            setSaturation(Array.isArray(v) ? v[0] : v)
+                          }
+                          min={0}
+                          max={200}
+                        />
                         <button
                           className="button secondary full"
-                          onClick={saveDraft}
+                          onClick={() => {
+                            setBrightness(100);
+                            setSaturation(100);
+                          }}
                         >
-                          <Bookmark size={15} />
-                          Lưu bản nháp
+                          Reset adjustments
                         </button>
-                        {view === 'audio' && (
-                          <button
-                            className="text-button"
-                            onClick={() => window.speechSynthesis?.cancel()}
-                          >
-                            Dừng nghe
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </section>
-                <section className="preview-panel">
-                  <div className="preview-bar">
-                    <span>
-                      <LayoutGrid size={16} />
-                      {view === 'cinema'
-                        ? 'Storyboard'
-                        : view === 'canvas'
-                          ? 'Bảng ý tưởng'
-                          : 'Không gian xem trước'}
-                    </span>
-                    <span className="subtle-label">
-                      {ratio} <span>·</span>{' '}
-                      {view === 'edit' ? 'LOCAL EDITOR' : 'CREATIVE STUDIO'}
-                    </span>
-                  </div>
-                  {view === 'cinema' || view === 'canvas' ? (
-                    <div
-                      className={
-                        view === 'canvas'
-                          ? 'storyboard canvas-board'
-                          : 'storyboard'
-                      }
-                    >
-                      <div className="board-title">
-                        <h2>
-                          {view === 'cinema'
-                            ? 'Câu chuyện của bạn'
-                            : 'Ghi lại mọi ý tưởng'}
-                        </h2>
                         <button
-                          className="button secondary"
-                          onClick={() =>
-                            setScenes([
-                              ...scenes,
-                              { id: crypto.randomUUID(), text: '' },
-                            ])
-                          }
+                          className="button primary full"
+                          onClick={exportImage}
                         >
-                          <Plus size={16} />
-                          Thêm {view === 'cinema' ? 'cảnh' : 'thẻ'}
+                          <ArrowDownToLine size={16} />
+                          Export PNG
                         </button>
-                      </div>
-                      {scenes.map((s, i) => (
-                        <article className="scene" key={s.id}>
-                          <div className="scene-number">
-                            {String(i + 1).padStart(2, '0')}
-                          </div>
-                          <textarea
-                            aria-label={'Nội dung cảnh ' + (i + 1)}
-                            placeholder="Mô tả cảnh, góc máy, hành động..."
-                            value={s.text}
-                            onChange={(e) =>
-                              setScenes(
-                                scenes.map((x) =>
-                                  x.id === s.id
-                                    ? { ...x, text: e.target.value }
-                                    : x,
-                                ),
+                        <p className="field-hint">
+                          Processed entirely on your device. Images are never
+                          uploaded.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <label className="field-label" htmlFor="prompt">
+                          {view === 'audio'
+                            ? 'Voiceover Script'
+                            : 'Your Creative Prompt'}
+                          <button
+                            onClick={() =>
+                              setPrompt(
+                                works[Math.floor(Math.random() * works.length)]
+                                  .prompt,
                               )
                             }
-                          />
-                          <div>
+                            aria-label="Inspire prompt"
+                          >
+                            <WandSparkles size={15} />
+                          </button>
+                        </label>
+                        <textarea
+                          id="prompt"
+                          maxLength={4000}
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          placeholder={
+                            view === 'audio'
+                              ? 'Enter the voiceover script or dialogue you want to audition...'
+                              : 'Describe your subject, environment, lighting, camera angle, and mood...'
+                          }
+                          rows={6}
+                        />
+                        <div className="prompt-meta">
+                          <span>{prompt.length}/4000</span>
+                          <button
+                            onClick={() => {
+                              if (prompt.trim()) {
+                                setPrompt(
+                                  (
+                                    prompt +
+                                    ', cinematic composition, detailed lighting, rich color grading'
+                                  ).slice(0, 4000),
+                                );
+                                setNotice(
+                                  'Added lighting and composition enhancements.',
+                                );
+                              } else
+                                setNotice('Enter a concept before enhancing.');
+                            }}
+                          >
+                            <Sparkles size={12} />
+                            Enhance
+                          </button>
+                        </div>
+                        {view !== 'audio' && (
+                          <>
+                            <span className="field-label">Model</span>
+                            <Picker
+                              value={model}
+                              onChange={setModel}
+                              values={
+                                view === 'video' || view === 'cinema'
+                                  ? ['Apexa Video']
+                                  : ['Apexa Image']
+                              }
+                            />
+                            <p className="field-hint">
+                              Requires an active AI endpoint configuration to
+                              generate.
+                            </p>
+                            <div className="field-row">
+                              <div>
+                                <span className="field-label">
+                                  Aspect Ratio
+                                </span>
+                                <Picker
+                                  value={ratio}
+                                  onChange={setRatio}
+                                  values={['16:9', '9:16', '1:1', '4:3', '3:2']}
+                                />
+                              </div>
+                              <div>
+                                <span className="field-label">
+                                  {view === 'video' || view === 'cinema'
+                                    ? 'Duration'
+                                    : 'Quality'}
+                                </span>
+                                <Picker
+                                  value={
+                                    view === 'video' || view === 'cinema'
+                                      ? duration
+                                      : 'Standard'
+                                  }
+                                  onChange={setDuration}
+                                  values={
+                                    view === 'video' || view === 'cinema'
+                                      ? ['5s', '10s']
+                                      : ['Standard']
+                                  }
+                                />
+                              </div>
+                            </div>
+                            {(view === 'video' || view === 'cinema') && (
+                              <>
+                                <span className="field-label">
+                                  Camera Motion
+                                </span>
+                                <Picker
+                                  value={cameraMotion}
+                                  onChange={setCameraMotion}
+                                  values={motions}
+                                />
+                              </>
+                            )}
+                          </>
+                        )}
+                        <div className="generation-actions">
+                          {view === 'audio' ? (
                             <button
-                              className="icon-button"
-                              aria-label="Dùng cảnh này làm prompt"
+                              className="button primary full"
                               onClick={() => {
-                                setPrompt(s.text);
-                                setNotice('Đã đưa cảnh vào prompt.');
+                                if (!prompt.trim()) {
+                                  setNotice(
+                                    'Please enter a voiceover script first.',
+                                  );
+                                  return;
+                                }
+                                if (!('speechSynthesis' in window)) {
+                                  setNotice(
+                                    'Speech synthesis is not supported on this browser.',
+                                  );
+                                  return;
+                                }
+                                speechSynthesis.cancel();
+                                const speech = new SpeechSynthesisUtterance(
+                                  prompt,
+                                );
+                                speech.lang = 'en-US';
+                                speechSynthesis.speak(speech);
+                                setNotice('Auditioning with device voice.');
                               }}
                             >
-                              <ArrowLeft size={15} />
+                              <Volume2 size={17} />
+                              Audition on Device
                             </button>
+                          ) : (
                             <button
-                              className="icon-button"
-                              aria-label="Xóa cảnh"
-                              onClick={() =>
-                                setScenes(scenes.filter((x) => x.id !== s.id))
-                              }
+                              className="button primary full"
+                              disabled={busy}
+                              onClick={generate}
                             >
-                              <Trash2 size={15} />
+                              {busy ? (
+                                <LoaderCircle className="spin" size={17} />
+                              ) : (
+                                <Sparkles size={17} />
+                              )}{' '}
+                              {busy
+                                ? 'Generating…'
+                                : view === 'video' || view === 'cinema'
+                                  ? 'Generate Video'
+                                  : 'Generate Image'}
+                              <ArrowRight size={17} />
                             </button>
-                          </div>
-                        </article>
-                      ))}
-                      <p className="field-hint">
-                        Xuất brief để giữ storyboard và các thiết lập của bạn.
-                      </p>
-                    </div>
-                  ) : result ? (
-                    <div className="result-preview">
-                      {result.type === 'video' ? (
-                        <video src={result.url} controls />
-                      ) : (
-                        <img
-                          src={result.url}
-                          alt="Kết quả AI tạo từ prompt của bạn"
-                        />
-                      )}
-                      <a
-                        className="button secondary"
-                        href={result.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Mở tác phẩm <ArrowUpRight size={16} />
-                      </a>
-                    </div>
-                  ) : upload ? (
-                    <div className="uploaded-preview">
-                      <img
-                        src={upload}
-                        alt="Bản xem trước ảnh của bạn"
-                        style={{
-                          filter: `brightness(${brightness}%) saturate(${saturation}%)`,
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="preview-empty">
-                      <div className="preview-symbol">
-                        <Aperture size={48} />
-                      </div>
-                      <h2>
-                        {view === 'audio'
-                          ? 'Mỗi câu chuyện đều có một giọng nói.'
-                          : 'Điều tuyệt vời tiếp theo bắt đầu ở đây.'}
-                      </h2>
-                      <p>
-                        {view === 'edit'
-                          ? 'Tải ảnh lên để điều chỉnh và xuất ảnh.'
-                          : view === 'audio'
-                            ? 'Nhập lời thoại và nghe thử bằng giọng đọc trên thiết bị.'
-                            : 'Viết ý tưởng hoặc bắt đầu với một hình ảnh tham chiếu.'}
-                      </p>
-                      <div className="preview-suggestions">
-                        {works.slice(0, 3).map((w) => (
+                          )}
                           <button
-                            key={w.id}
-                            onClick={() => setPrompt(w.prompt)}
+                            className="button secondary full"
+                            onClick={saveDraft}
                           >
-                            <img src={w.image} alt={w.title} />
-                            <span>
-                              {w.category}
-                              <ArrowUpRight size={13} />
-                            </span>
+                            <Bookmark size={15} />
+                            Save Draft
                           </button>
-                        ))}
-                      </div>
+                          {view === 'audio' && (
+                            <button
+                              className="text-button"
+                              onClick={() => window.speechSynthesis?.cancel()}
+                            >
+                              Stop playback
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </section>
+                  <section className="preview-panel">
+                    <div className="preview-bar">
+                      <span>
+                        <LayoutGrid size={16} />
+                        {view === 'cinema'
+                          ? 'Storyboard'
+                          : view === 'canvas'
+                            ? 'Idea Canvas'
+                            : 'Preview Space'}
+                      </span>
+                      <span className="subtle-label">
+                        {ratio} <span>·</span>{' '}
+                        {view === 'edit' ? 'LOCAL EDITOR' : 'CREATIVE STUDIO'}
+                      </span>
                     </div>
-                  )}
-                  <div className="preview-footer">
-                    <span>
-                      <span className="status-dot" />
-                      {busy
-                        ? 'Đang chờ kết quả'
-                        : 'Sẵn sàng cho ý tưởng của bạn'}
-                    </span>
-                    <span>FRAME STUDIO</span>
-                  </div>
-                </section>
-              </div>
-            </>
-          )}
-          <footer className="page-footer">
-            <span className="footer-brand">
-              <Aperture size={14} />
-              frame.
-            </span>
-            <span>Made for your imagination.</span>
-            <button onClick={() => setHelp(true)}>
-              Thông tin & nguồn hình ảnh <ArrowUpRight size={12} />
-            </button>
-          </footer>
-        </main>
-      </div>
-      <input
-        ref={fileRef}
-        className="sr-only"
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        onChange={onUpload}
-      />
-      <Dialog open={!!detail} onOpenChange={(v) => !v && setDetail(null)}>
-        <DialogContent className="detail-dialog">
-          {detail && (
-            <>
-              <img
-                className="detail-image"
-                src={detail.image}
-                alt={detail.title}
-              />
-              <div className="detail-body">
-                <span className="eyebrow">{detail.category}</span>
-                <DialogTitle>{detail.title}</DialogTitle>
-                <DialogDescription>
-                  {detail.author} ·{' '}
-                  {detail.source
-                    ? 'Ảnh tham khảo sáng tạo'
-                    : 'Tác phẩm AI nguyên bản của FRAME'}
-                </DialogDescription>
-                <label className="field-label">Prompt gợi ý</label>
-                <p className="detail-prompt">{detail.prompt}</p>
-                <div className="detail-actions">
-                  <button
-                    className="button primary"
-                    onClick={() => remix(detail)}
-                  >
-                    <Sparkles size={16} />
-                    Dùng prompt này
-                  </button>
-                  <button
-                    className="button secondary"
-                    onClick={() => toggleSave(detail.id)}
-                  >
-                    <Bookmark size={16} />
-                    {saved.includes(detail.id) ? 'Đã lưu' : 'Lưu ý tưởng'}
-                  </button>
+                    {view === 'cinema' || view === 'canvas' ? (
+                      <div
+                        className={
+                          view === 'canvas'
+                            ? 'storyboard canvas-board'
+                            : 'storyboard'
+                        }
+                      >
+                        <div className="board-title">
+                          <h2>
+                            {view === 'cinema'
+                              ? 'Your Visual Story'
+                              : 'Idea Board'}
+                          </h2>
+                          <button
+                            className="button secondary"
+                            onClick={() =>
+                              setScenes([
+                                ...scenes,
+                                { id: crypto.randomUUID(), text: '' },
+                              ])
+                            }
+                          >
+                            <Plus size={16} />
+                            Add {view === 'cinema' ? 'Scene' : 'Card'}
+                          </button>
+                        </div>
+                        {scenes.map((s, i) => (
+                          <article className="scene" key={s.id}>
+                            <div className="scene-number">
+                              {String(i + 1).padStart(2, '0')}
+                            </div>
+                            <textarea
+                              aria-label={'Scene content ' + (i + 1)}
+                              placeholder="Describe scene, camera angle, action, lighting..."
+                              value={s.text}
+                              onChange={(e) =>
+                                setScenes(
+                                  scenes.map((x) =>
+                                    x.id === s.id
+                                      ? { ...x, text: e.target.value }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                            <div>
+                              <button
+                                className="icon-button"
+                                aria-label="Use scene as prompt"
+                                onClick={() => {
+                                  setPrompt(s.text);
+                                  setNotice('Scene transferred to prompt.');
+                                }}
+                              >
+                                <ArrowLeft size={15} />
+                              </button>
+                              <button
+                                className="icon-button"
+                                aria-label="Delete scene"
+                                onClick={() =>
+                                  setScenes(scenes.filter((x) => x.id !== s.id))
+                                }
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </article>
+                        ))}
+                        <p className="field-hint">
+                          Export a brief to preserve your storyboard and
+                          settings.
+                        </p>
+                      </div>
+                    ) : result ? (
+                      <div className="result-preview">
+                        {result.type === 'video' ? (
+                          <video src={result.url} controls>
+                            <track kind="captions" />
+                          </video>
+                        ) : (
+                          <NextImage
+                            src={result.url}
+                            alt="AI generated creation"
+                            unoptimized
+                            width={1200}
+                            height={800}
+                          />
+                        )}
+                        <a
+                          className="button secondary"
+                          href={result.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open Artwork <ArrowUpRight size={16} />
+                        </a>
+                      </div>
+                    ) : upload ? (
+                      <div className="uploaded-preview">
+                        <NextImage
+                          src={upload}
+                          alt="Uploaded image preview"
+                          unoptimized
+                          width={1200}
+                          height={800}
+                          style={{
+                            filter: `brightness(${brightness}%) saturate(${saturation}%)`,
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="preview-empty">
+                        <div className="preview-symbol">
+                          <Aperture size={48} />
+                        </div>
+                        <h2>
+                          {view === 'audio'
+                            ? 'Every story deserves a distinct voice.'
+                            : 'Your next creation starts here.'}
+                        </h2>
+                        <p>
+                          {view === 'edit'
+                            ? 'Upload an image to adjust grades and export full-resolution PNG.'
+                            : view === 'audio'
+                              ? 'Enter a script to audition synthesized speech directly on your device.'
+                              : 'Type a prompt or upload a reference image to begin.'}
+                        </p>
+                        <div className="preview-suggestions">
+                          {works.slice(0, 3).map((w) => (
+                            <button
+                              key={w.id}
+                              onClick={() => setPrompt(w.prompt)}
+                            >
+                              <NextImage
+                                width={260}
+                                height={200}
+                                src={w.image}
+                                alt={w.title}
+                                sizes="140px"
+                              />
+                              <span>
+                                {w.category}
+                                <ArrowUpRight size={13} />
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="preview-footer">
+                      <span>
+                        <span className="status-dot" />
+                        {busy ? 'Generating asset…' : 'Ready for your concepts'}
+                      </span>
+                      <span>APEXA STUDIO</span>
+                    </div>
+                  </section>
                 </div>
-                {detail.source && (
-                  <a
-                    className="source-link"
-                    href={detail.source}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Ảnh gốc trên Unsplash <ArrowUpRight size={12} />
-                  </a>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-      <Dialog open={help} onOpenChange={setHelp}>
-        <DialogContent className="help-dialog">
-          <div className="brand">
-            <Aperture />
-            <span>frame.</span>
-          </div>
-          <DialogTitle>Không gian cho ý tưởng của bạn.</DialogTitle>
-          <DialogDescription>
-            FRAME là studio sáng tạo độc lập. Bản trải nghiệm hiện tại ưu tiên
-            công cụ và quy trình sáng tạo.
-          </DialogDescription>
-          <div className="help-feature">
-            <Check />
-            Khám phá, dùng prompt và lưu ý tưởng.
-          </div>
-          <div className="help-feature">
-            <Check />
-            Tải ảnh, chỉnh màu và xuất PNG trên thiết bị.
-          </div>
-          <div className="help-feature">
-            <Check />
-            Viết storyboard, xuất brief và nghe lời đọc.
-          </div>
-          <div className="connection-note">
-            <Zap size={18} />
-            <div>
-              <b>Kết nối AI</b>
-              <p>
-                Tạo ảnh và video cần nhà cung cấp AI được cấu hình bởi chủ ứng
-                dụng. Hiện chưa có mô hình kết nối. Không có phí hoặc credit bị
-                trừ.
-              </p>
-            </div>
-          </div>
-          <p className="field-hint">
-            Bản nháp và mục đã lưu chỉ nằm trong trình duyệt này. Chưa có đồng
-            bộ tài khoản. Ảnh tham khảo có ghi nguồn Unsplash; hình chrome được
-            tạo riêng. FRAME không liên kết với Higgsfield.
-          </p>
-        </DialogContent>
-      </Dialog>
-      {notice && (
-        <div className="toast" role="status">
-          <Sparkles size={17} />
-          <span>{notice}</span>
-          <button onClick={() => setNotice('')} aria-label="Đóng thông báo">
-            <X size={15} />
-          </button>
+              </>
+            )}
+            <footer className="page-footer">
+              <span className="footer-brand">
+                <Aperture size={14} />
+                apexa.
+              </span>
+              <span>Made for your imagination.</span>
+              <button onClick={() => setHelp(true)}>
+                About & Image Provenance <ArrowUpRight size={12} />
+              </button>
+            </footer>
+          </main>
         </div>
-      )}
-    </>
+        <input
+          ref={fileRef}
+          className="sr-only"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={onUpload}
+        />
+        {(detail || help) && (
+          <StudioDialogs
+            detail={detail}
+            setDetail={setDetail}
+            help={help}
+            setHelp={setHelp}
+            saved={saved}
+            remix={remix}
+            toggleSave={toggleSave}
+          />
+        )}
+        <AnimatePresence>
+          {notice && (
+            <motion.output
+              key="app-notice-toast"
+              className="toast"
+              initial={{ opacity: 0, y: 24, x: '-50%', scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
+              exit={{
+                opacity: 0,
+                y: 16,
+                x: '-50%',
+                scale: 0.94,
+                transition: { duration: 0.18 },
+              }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+            >
+              <Sparkles size={17} />
+              <span>{notice}</span>
+              <button
+                onClick={() => setNotice('')}
+                aria-label="Dismiss notification"
+              >
+                <X size={15} />
+              </button>
+            </motion.output>
+          )}
+        </AnimatePresence>
+      </div>
+    </TooltipProvider>
   );
 }
