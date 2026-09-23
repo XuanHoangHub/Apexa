@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { downloadYouTube, downloadInstagram } from '@hiudyy/ytdl';
 import { getInfo as getVidlyInfo } from '@raihan07/vidly';
 import { extractWithYtDlp } from '@/lib/yt-dlp-service';
@@ -1026,6 +1027,21 @@ export async function resolveMediaUrl(
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Vui lòng đăng nhập để sử dụng tính năng Get Studio.',
+      },
+      { status: 401 },
+    );
+  }
+
   try {
     const body = await req.json();
 

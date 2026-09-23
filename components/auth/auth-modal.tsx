@@ -8,9 +8,21 @@ import AuthForm from '@/components/auth/auth-form';
 import { useAuthModal } from './auth-modal-context';
 
 export default function AuthModal() {
-  const { isOpen, mode, closeAuthModal, setMode } = useAuthModal();
+  const {
+    isOpen,
+    mode,
+    closeAuthModal,
+    setMode,
+    reason,
+    executePendingAction,
+  } = useAuthModal();
   const panelRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+
+  const handleSuccess = useCallback(() => {
+    closeAuthModal();
+    executePendingAction();
+  }, [closeAuthModal, executePendingAction]);
 
   // Close on Escape key press
   const handleKeyDown = useCallback(
@@ -156,12 +168,29 @@ export default function AuthModal() {
               >
                 <X size={16} />
               </button>
+
+              {reason && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="auth-modal-reason-banner"
+                >
+                  <div className="auth-modal-reason-icon">
+                    <Sparkles size={15} />
+                  </div>
+                  <div className="auth-modal-reason-text">
+                    <strong>Yêu cầu đăng nhập</strong>
+                    <span>{reason}</span>
+                  </div>
+                </motion.div>
+              )}
+
               <AuthForm
                 key={mode}
                 mode={mode}
                 inModal={true}
                 onModeChange={setMode}
-                onSuccess={closeAuthModal}
+                onSuccess={handleSuccess}
                 onClose={closeAuthModal}
               />
             </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { streamWithYtDlp, isYtDlpAvailable } from '@/lib/yt-dlp-service';
 
 export const runtime = 'nodejs';
@@ -195,6 +196,17 @@ export async function OPTIONS() {
  * High-performance streaming GET handler
  */
 export async function GET(req: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response('Unauthorized: Vui lòng đăng nhập để tải media.', {
+      status: 401,
+    });
+  }
+
   try {
     const { searchParams } = new URL(req.url);
     const mediaUrl = searchParams.get('mediaUrl');

@@ -164,7 +164,6 @@ export default function AuthForm({
   const [error, setError] = useState(initialError ?? '');
   const [success, setSuccess] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [agreeTerms, setAgreeTerms] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [magicLink, setMagicLink] = useState(false);
 
@@ -196,7 +195,11 @@ export default function AuthForm({
     setBusyOAuth(provider);
     try {
       const supabase = createClient();
-      const callback = `${window.location.origin}/auth/callback?next=/`;
+      const nextQuery =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next') || '/'
+          : '/';
+      const callback = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextQuery)}`;
       const { data, error: oauthErr } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -243,12 +246,6 @@ export default function AuthForm({
         setError('Mật khẩu xác nhận chưa khớp. Vui lòng kiểm tra lại.');
         return;
       }
-      if (!agreeTerms) {
-        setError(
-          'Vui lòng đồng ý với Điều khoản dịch vụ và Chính sách bảo mật.',
-        );
-        return;
-      }
     }
 
     if (mode === 'reset') {
@@ -265,7 +262,11 @@ export default function AuthForm({
     setBusy(true);
     try {
       const supabase = createClient();
-      const callback = `${window.location.origin}/auth/callback?next=/`;
+      const nextQuery =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next') || '/'
+          : '/';
+      const callback = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextQuery)}`;
 
       if (mode === 'login') {
         if (magicLink) {
@@ -294,7 +295,7 @@ export default function AuthForm({
         if (inModal && onSuccess) {
           onSuccess();
         } else {
-          window.location.assign('/');
+          window.location.assign(nextQuery);
         }
       } else if (mode === 'signup') {
         const { data, error: signupErr } = await supabase.auth.signUp({
@@ -313,7 +314,7 @@ export default function AuthForm({
           if (inModal && onSuccess) {
             onSuccess();
           } else {
-            window.location.assign('/');
+            window.location.assign(nextQuery);
           }
         } else {
           setPassword('');
@@ -728,36 +729,6 @@ export default function AuthForm({
                 </div>
               )}
             </div>
-          )}
-
-          {/* Điều khoản dịch vụ cho Signup */}
-          {mode === 'signup' && (
-            <label className="auth-check-row" style={{ marginTop: 6 }}>
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={agreeTerms}
-                onChange={(e) => setAgreeTerms(e.target.checked)}
-              />
-              <span
-                className="auth-check-box"
-                data-checked={agreeTerms}
-                aria-hidden="true"
-              >
-                {agreeTerms && <Check size={12} strokeWidth={3} />}
-              </span>
-              <span>
-                Tôi đồng ý với{' '}
-                <a href="#terms" onClick={(e) => e.preventDefault()}>
-                  Điều khoản dịch vụ
-                </a>{' '}
-                và{' '}
-                <a href="#privacy" onClick={(e) => e.preventDefault()}>
-                  Chính sách bảo mật
-                </a>{' '}
-                của Apexa Studio.
-              </span>
-            </label>
           )}
 
           {/* Magic Link toggle cho Login */}

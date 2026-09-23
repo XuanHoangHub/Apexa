@@ -1,5 +1,22 @@
+import { createClient } from '@/lib/supabase/server';
+
 export async function POST(request: Request) {
   const json = (data: unknown, status = 200) => Response.json(data, { status });
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return json(
+      {
+        error: 'Vui lòng đăng nhập để sử dụng tính năng tạo hình ảnh/video AI.',
+      },
+      401,
+    );
+  }
+
   const originHeader = request.headers.get('origin');
   if (originHeader && originHeader !== 'null') {
     try {

@@ -17,21 +17,23 @@
   --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Visual Colors */
-  --badge-bg: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  --badge-color: #ffffff;
-  --badge-ring: #ffffff;
-  --bell-trigger-bg: #ffffff;
-  --bell-trigger-hover: #f3f4f6;
-  --bell-trigger-border: rgba(0, 0, 0, 0.08);
-  --bell-trigger-color: #374151;
+  --badge-bg: linear-gradient(135deg, #72e8f6 0%, #0284c7 100%);
+  --badge-color: #0c0e10;
+  --badge-ring: #13171a;
+  --bell-trigger-bg: transparent;
+  --bell-trigger-hover: rgba(255, 255, 255, 0.08);
+  --bell-trigger-border: rgba(255, 255, 255, 0.09);
+  --bell-trigger-color: #9cb1bc;
 }
 
 .dark {
-  --badge-ring: #18181b;
-  --bell-trigger-bg: #18181b;
-  --bell-trigger-hover: #27272a;
-  --bell-trigger-border: rgba(255, 255, 255, 0.1);
-  --bell-trigger-color: #e4e4e7;
+  --badge-bg: linear-gradient(135deg, #72e8f6 0%, #0284c7 100%);
+  --badge-color: #0c0e10;
+  --badge-ring: #13171a;
+  --bell-trigger-bg: transparent;
+  --bell-trigger-hover: rgba(255, 255, 255, 0.08);
+  --bell-trigger-border: rgba(255, 255, 255, 0.09);
+  --bell-trigger-color: #9cb1bc;
 }
 
 /* --------------------------------------------------------------------------
@@ -157,29 +159,30 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   border: 1px solid var(--bell-trigger-border);
   background: var(--bell-trigger-bg);
   color: var(--bell-trigger-color);
   cursor: pointer;
   outline: none;
   transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s,
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s,
     transform 0.12s;
   user-select: none;
 }
 
 .t-bell-trigger:hover {
   background: var(--bell-trigger-hover);
-  color: #111827;
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 
 .dark .t-bell-trigger:hover {
-  color: #fafafa;
+  color: #ffffff;
 }
 
 .t-bell-trigger:active {

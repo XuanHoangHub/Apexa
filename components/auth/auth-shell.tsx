@@ -15,6 +15,17 @@ import { usePathname } from 'next/navigation';
 export default function AuthShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const reduced = useReducedMotion();
+
+  if (pathname === '/account') {
+    return (
+      <MotionConfig reducedMotion="user">
+        <main className="account-page-shell" lang="vi">
+          {children}
+        </main>
+      </MotionConfig>
+    );
+  }
+
   return (
     <MotionConfig reducedMotion="user">
       <main className="auth-page" lang="vi">

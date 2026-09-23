@@ -6,16 +6,26 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
 
 export type AuthModalMode = 'login' | 'signup' | 'forgot' | 'reset';
 
 interface AuthModalContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   isOpen: boolean;
   mode: AuthModalMode;
-  openAuthModal: (mode?: AuthModalMode) => void;
+  reason: string | null;
+  openAuthModal: (mode?: AuthModalMode, reason?: string) => void;
   closeAuthModal: () => void;
   setMode: (mode: AuthModalMode) => void;
+  setReason: (reason: string | null) => void;
+  requireAuth: (action?: () => void, reason?: string) => boolean;
+  executePendingAction: () => void;
 }
 
 const AuthModalContext = createContext<AuthModalContextType | undefined>(
@@ -43,15 +53,68 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   const [initial] = useState(getInitialState);
   const [isOpen, setIsOpen] = useState(initial.isOpen);
   const [mode, setMode] = useState<AuthModalMode>(initial.mode);
+  const [reason, setReason] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
-  const openAuthModal = useCallback((targetMode?: AuthModalMode) => {
-    if (targetMode) setMode(targetMode);
-    setIsOpen(true);
+  // Subscribe to Supabase auth state change
+  useEffect(() => {
+    try {
+      const supabase = createClient();
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+        setIsLoading(false);
+      });
+      return () => data.subscription.unsubscribe();
+    } catch {
+      queueMicrotask(() => {
+        setIsLoading(false);
+      });
+    }
   }, []);
+
+  const openAuthModal = useCallback(
+    (targetMode?: AuthModalMode, triggerReason?: string) => {
+      if (targetMode) setMode(targetMode);
+      if (triggerReason !== undefined) setReason(triggerReason);
+      setIsOpen(true);
+    },
+    [],
+  );
 
   const closeAuthModal = useCallback(() => {
     setIsOpen(false);
+    setReason(null);
   }, []);
+
+  const executePendingAction = useCallback(() => {
+    if (pendingActionRef.current) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null;
+      try {
+        action();
+      } catch (err) {
+        console.error('Failed to execute pending action after auth:', err);
+      }
+    }
+  }, []);
+
+  const requireAuth = useCallback(
+    (action?: () => void, customReason?: string): boolean => {
+      if (user) {
+        return true;
+      }
+      if (action) {
+        pendingActionRef.current = action;
+      }
+      setReason(customReason || 'Vui lòng đăng nhập để sử dụng tính năng này.');
+      setMode('login');
+      setIsOpen(true);
+      return false;
+    },
+    [user],
+  );
 
   // Clean up ?auth= query param from the browser URL if present
   useEffect(() => {
@@ -68,11 +131,18 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthModalContext.Provider
       value={{
+        user,
+        isAuthenticated: !!user,
+        isLoading,
         isOpen,
         mode,
+        reason,
         openAuthModal,
         closeAuthModal,
         setMode,
+        setReason,
+        requireAuth,
+        executePendingAction,
       }}
     >
       {children}
@@ -87,3 +157,6 @@ export function useAuthModal() {
   }
   return context;
 }
+
+// Alias for generic auth access
+export const useAuth = useAuthModal;

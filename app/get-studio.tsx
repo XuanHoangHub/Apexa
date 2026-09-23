@@ -41,6 +41,8 @@ import type {
 import { sampleGetUrls } from '@/lib/studio-data';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlatformBrandIcon } from '@/components/platform-icon';
+import { useAuthModal } from '@/components/auth/auth-modal-context';
+import GetStudioSeo from '@/components/get-studio-seo';
 
 interface Props {
   onNotice: (msg: string) => void;
@@ -263,6 +265,8 @@ function pickFormatByPreset(
 }
 
 export default function GetStudio({ onNotice }: Props) {
+  const { isAuthenticated, requireAuth, openAuthModal } = useAuthModal();
+
   // Mode switcher: 'single' (traditional) | 'batch' (multi-URL)
   const [mode, setMode] = useState<'single' | 'batch'>('single');
 
@@ -509,6 +513,15 @@ export default function GetStudio({ onNotice }: Props) {
       return;
     }
 
+    if (
+      !requireAuth(
+        () => void handleGet(targetUrl),
+        'Vui lòng đăng nhập để phân tích và tải media từ Get Studio.',
+      )
+    ) {
+      return;
+    }
+
     setLoading(true);
     setError('');
     setResult(null);
@@ -543,6 +556,15 @@ export default function GetStudio({ onNotice }: Props) {
     overrideMode?: 'fast' | 'proxy',
     mediaTitleParam?: string,
   ) {
+    if (
+      !requireAuth(
+        () => void triggerDownload(format, overrideMode, mediaTitleParam),
+        'Vui lòng đăng nhập để tải file media về thiết bị.',
+      )
+    ) {
+      return;
+    }
+
     const chosenMode = overrideMode || speedMode;
     const downloadId = format.downloadUrl || format.url;
     setDownloadingId(downloadId);
@@ -743,6 +765,15 @@ export default function GetStudio({ onNotice }: Props) {
       return;
     }
 
+    if (
+      !requireAuth(
+        () => void handleResolveBatch(),
+        'Vui lòng đăng nhập để phân tích danh sách media.',
+      )
+    ) {
+      return;
+    }
+
     setBatchLoading(true);
     setBatchError('');
 
@@ -852,6 +883,15 @@ export default function GetStudio({ onNotice }: Props) {
     );
     if (selectedItems.length === 0) {
       onNotice('Vui lòng chọn ít nhất một video/audio để tải.');
+      return;
+    }
+
+    if (
+      !requireAuth(
+        () => void handleDownloadBatch(),
+        'Vui lòng đăng nhập để tải hàng loạt file media.',
+      )
+    ) {
       return;
     }
 
@@ -983,6 +1023,30 @@ export default function GetStudio({ onNotice }: Props) {
 
   return (
     <div className="get-studio-container">
+      {!isAuthenticated && (
+        <div className="studio-preview-banner">
+          <div className="preview-banner-text">
+            <Sparkles size={16} className="text-[#00d2ff]" />
+            <span>
+              <strong>Chế độ xem trước:</strong> Đăng nhập tài khoản Apexa để
+              phân tích và tải video / âm thanh chất lượng gốc từ hơn 15 nền
+              tảng.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn-banner-login"
+            onClick={() =>
+              openAuthModal(
+                'login',
+                'Vui lòng đăng nhập để sử dụng tính năng Get Studio.',
+              )
+            }
+          >
+            Đăng nhập ngay
+          </button>
+        </div>
+      )}
       {/* Hidden File Input for .txt link list import */}
       <input
         ref={fileInputRef}
@@ -995,12 +1059,14 @@ export default function GetStudio({ onNotice }: Props) {
       {/* ── Hero & Search Section ── */}
       <section className="get-hero">
         <h1 className="get-hero-title">
-          Get<span className="brand-dot">.</span>
+          Apexa Get<span className="brand-dot">.</span>
         </h1>
         <p className="get-hero-desc">
           Tải video & âm thanh chất lượng gốc siêu tốc từ máy chủ CDN của 14+
-          nền tảng hàng đầu. Không giảm chất lượng, hỗ trợ tải hàng loạt và
-          tương thích IDM / FDM.
+          nền tảng: <strong>Facebook Reels</strong>,{' '}
+          <strong>TikTok không logo</strong>, <strong>YouTube 4K</strong>,{' '}
+          <strong>Instagram</strong>, <strong>X / Twitter</strong> và tách nhạc{' '}
+          <strong>MP3 320kbps</strong> miễn phí 100%.
         </p>
 
         {/* Mode Switcher */}
@@ -1054,7 +1120,7 @@ export default function GetStudio({ onNotice }: Props) {
                           className="platform-trigger-tag"
                           title="Hệ thống tự động nhận diện từ liên kết"
                         >
-                          Auto
+                          AUTO
                         </span>
                       )}
                     </>
@@ -1333,6 +1399,43 @@ export default function GetStudio({ onNotice }: Props) {
                 </>
               )}
             </motion.button>
+          </div>
+        )}
+
+        {/* Quick Platform Chips Bar */}
+        {mode === 'single' && (
+          <div className="get-quick-platforms">
+            <span className="quick-platform-label">Nền tảng phổ biến:</span>
+            {(
+              [
+                { id: 'youtube', name: 'YouTube', tag: '4K / MP3' },
+                { id: 'tiktok', name: 'TikTok', tag: 'No Logo' },
+                { id: 'facebook', name: 'Facebook', tag: 'Reels HD' },
+                { id: 'instagram', name: 'Instagram', tag: 'Reels' },
+                { id: 'twitter', name: 'X / Twitter', tag: 'MP4' },
+                { id: 'pinterest', name: 'Pinterest' },
+                { id: 'vimeo', name: 'Vimeo' },
+                { id: 'bilibili', name: 'Bilibili' },
+              ] as Array<{ id: PlatformType; name: string; tag?: string }>
+            ).map((p) => {
+              const isActive = selectedPlatform === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`quick-platform-chip ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    handleSelectPlatformPill(p.id);
+                    onNotice(`🎯 Đã chọn ${p.name}`);
+                  }}
+                  title={`Lọc nền tảng ${p.name}`}
+                >
+                  <PlatformBrandIcon id={p.id} size={15} />
+                  <span>{p.name}</span>
+                  {p.tag && <span className="chip-tag">{p.tag}</span>}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -2405,6 +2508,19 @@ https://www.pinterest.com/pin/...`}
           </div>
         </section>
       )}
+
+      {/* SEO & Features Overview */}
+      <GetStudioSeo
+        onScrollToTop={() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onTrySample={(sampleUrl, platform) => {
+          setMode('single');
+          setSelectedPlatform(platform);
+          setUrl(sampleUrl);
+          void handleGet(sampleUrl);
+        }}
+      />
     </div>
   );
 }

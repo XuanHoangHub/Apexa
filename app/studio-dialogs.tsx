@@ -7,6 +7,9 @@ import {
   Bookmark,
   Check,
   Zap,
+  Film,
+  Clapperboard,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   Dialog,
@@ -14,6 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { useAuthModal } from '@/components/auth/auth-modal-context';
 import type { Work } from '@/lib/studio-data';
 type Props = {
   detail: Work | null;
@@ -22,6 +26,9 @@ type Props = {
   setHelp: (value: boolean) => void;
   saved: string[];
   remix: (work: Work) => void;
+  onAnimateWork?: (work: Work) => void;
+  onAddToStoryboardWork?: (work: Work) => void;
+  onUseAsReference?: (work: Work) => void;
   toggleSave: (id: string) => void;
 };
 export default function StudioDialogs({
@@ -31,8 +38,13 @@ export default function StudioDialogs({
   setHelp,
   saved,
   remix,
+  onAnimateWork,
+  onAddToStoryboardWork,
+  onUseAsReference,
   toggleSave,
 }: Props) {
+  const { requireAuth } = useAuthModal();
+
   return (
     <>
       {' '}
@@ -62,14 +74,69 @@ export default function StudioDialogs({
                 <div className="detail-actions">
                   <button
                     className="button primary"
-                    onClick={() => remix(detail)}
+                    onClick={() =>
+                      requireAuth(
+                        () => remix(detail),
+                        'Vui lòng đăng nhập để sử dụng prompt này trong Studio.',
+                      )
+                    }
                   >
                     <Sparkles size={16} />
-                    Use this prompt
+                    Remix as Image
                   </button>
+                  {onAnimateWork && (
+                    <button
+                      className="button secondary"
+                      onClick={() =>
+                        requireAuth(
+                          () => onAnimateWork(detail),
+                          'Vui lòng đăng nhập để animate hình ảnh này.',
+                        )
+                      }
+                      title="Animate this inspiration in Video Studio"
+                    >
+                      <Film size={15} />
+                      Animate in Video
+                    </button>
+                  )}
+                  {onAddToStoryboardWork && (
+                    <button
+                      className="button secondary"
+                      onClick={() =>
+                        requireAuth(
+                          () => onAddToStoryboardWork(detail),
+                          'Vui lòng đăng nhập để thêm cảnh vào Storyboard.',
+                        )
+                      }
+                      title="Add to Cinema Storyboard"
+                    >
+                      <Clapperboard size={15} />
+                      Add to Storyboard
+                    </button>
+                  )}
+                  {onUseAsReference && (
+                    <button
+                      className="button secondary"
+                      onClick={() =>
+                        requireAuth(
+                          () => onUseAsReference(detail),
+                          'Vui lòng đăng nhập để dùng ảnh làm tham chiếu.',
+                        )
+                      }
+                      title="Set as reference image"
+                    >
+                      <ImageIcon size={15} />
+                      Use Reference
+                    </button>
+                  )}
                   <button
                     className="button secondary"
-                    onClick={() => toggleSave(detail.id)}
+                    onClick={() =>
+                      requireAuth(
+                        () => toggleSave(detail.id),
+                        'Vui lòng đăng nhập để lưu tác phẩm vào bộ sưu tập.',
+                      )
+                    }
                   >
                     <Bookmark size={16} />
                     {saved.includes(detail.id) ? 'Saved' : 'Save concept'}

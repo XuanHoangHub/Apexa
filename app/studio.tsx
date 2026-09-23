@@ -2,7 +2,10 @@
 import dynamic from 'next/dynamic';
 import NextImage from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import AccountMenu from '@/components/auth/account-menu';
+import NotificationBell from '@/components/notification-bell';
+import { useAuthModal } from '@/components/auth/auth-modal-context';
 import {
   hero,
   works,
@@ -19,6 +22,11 @@ import {
 } from '@/lib/studio-data';
 const StudioDialogs = dynamic(() => import('./studio-dialogs'));
 const GetStudio = dynamic(() => import('./get-studio'));
+import PreviewViewport, {
+  type GenerationItem,
+} from '@/components/studio/preview-viewport';
+import GenerationReel from '@/components/studio/generation-reel';
+import WorkflowControls from '@/components/studio/workflow-controls';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -29,6 +37,7 @@ import {
   ArrowUpRight,
   Bookmark,
   Clapperboard,
+  Cloud,
   Copy,
   FolderOpen,
   Image as ImageIcon,
@@ -45,7 +54,9 @@ import {
   WandSparkles,
   X,
   CircleHelp,
-  Bell,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
   Trash2,
   Volume2,
 } from 'lucide-react';
@@ -389,6 +400,8 @@ export default function CreativeApp() {
   return <Studio />;
 }
 function Studio() {
+  const router = useRouter();
+  const { isAuthenticated, requireAuth, openAuthModal } = useAuthModal();
   const [brand, setBrand] = useState('');
   const [view, setView] = useState<View>('explore');
   const [query, setQuery] = useState('');
@@ -402,15 +415,21 @@ function Studio() {
   const [duration, setDuration] = useState('5s');
   const [cameraMotion, setCameraMotion] = useState('Dolly in');
   const [notice, setNotice] = useState('');
+  const [noticeType, setNoticeType] = useState<'info' | 'success' | 'warning'>(
+    'info',
+  );
   const [help, setHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [upload, setUpload] = useState<string | null>(null);
-  const [result, setResult] = useState<{ url: string; type: string } | null>(
-    null,
-  );
+  const [result, setResult] = useState<GenerationItem | null>(null);
+  const [generations, setGenerations] = useState<GenerationItem[]>([]);
+  const [compareItem, setCompareItem] = useState<GenerationItem | null>(null);
+  const [negativePrompt, setNegativePrompt] = useState('');
   const [brightness, setBrightness] = useState(100);
   const [saturation, setSaturation] = useState(100);
-  const [scenes, setScenes] = useState([
+  const [scenes, setScenes] = useState<
+    { id: string; text: string; image?: string }[]
+  >([
     {
       id: '1',
       text: 'Opening wide shot — dawn light sweeps across sculpted sand dunes.',
@@ -527,6 +546,13 @@ function Studio() {
             );
           }
         }
+        const rawReel = localStorage.getItem('apexa-session-reel-v1');
+        if (rawReel) {
+          const parsedReel = JSON.parse(rawReel);
+          if (Array.isArray(parsedReel)) {
+            setGenerations(parsedReel);
+          }
+        }
       } catch {}
       const v = location.hash.slice(1) as View;
       if (Object.hasOwn(labels, v)) {
@@ -608,7 +634,7 @@ function Studio() {
       return false;
     }
   }, []);
-  const toggleSave = useCallback(
+  const applyToggleSave = useCallback(
     (id: string) => {
       setSaved((prev) => {
         const next = prev.includes(id)
@@ -620,9 +646,24 @@ function Studio() {
     },
     [drafts, persist],
   );
-  const saveDraft = useCallback(() => {
+  const toggleSave = useCallback(
+    (id: string) => {
+      if (
+        !requireAuth(
+          () => applyToggleSave(id),
+          'Vui lòng đăng nhập để lưu tác phẩm vào bộ sưu tập.',
+        )
+      ) {
+        return;
+      }
+      applyToggleSave(id);
+    },
+    [applyToggleSave, requireAuth],
+  );
+  const applySaveDraft = useCallback(() => {
     if (!prompt.trim()) {
       setNotice('Please write a concept before saving.');
+      setNoticeType('warning');
       return;
     }
     const d: Draft = {
@@ -642,6 +683,7 @@ function Studio() {
     if (persist(saved, next)) {
       setDrafts(next);
       setNotice('Draft saved on this device.');
+      setNoticeType('success');
     }
   }, [
     prompt,
@@ -656,6 +698,17 @@ function Studio() {
     persist,
     saved,
   ]);
+  const saveDraft = useCallback(() => {
+    if (
+      !requireAuth(
+        () => applySaveDraft(),
+        'Vui lòng đăng nhập để lưu bản nháp của bạn.',
+      )
+    ) {
+      return;
+    }
+    applySaveDraft();
+  }, [applySaveDraft, requireAuth]);
   const download = useCallback((data: Blob, name: string) => {
     const url = URL.createObjectURL(data);
     const a = document.createElement('a');
@@ -664,7 +717,7 @@ function Studio() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, []);
-  const exportBrief = useCallback(() => {
+  const applyExportBrief = useCallback(() => {
     download(
       new Blob(
         [
@@ -688,7 +741,19 @@ function Studio() {
       'frame-creative-brief.json',
     );
     setNotice('Creative brief exported.');
+    setNoticeType('success');
   }, [download, prompt, model, ratio, duration, cameraMotion, scenes, brand]);
+  const exportBrief = useCallback(() => {
+    if (
+      !requireAuth(
+        () => applyExportBrief(),
+        'Vui lòng đăng nhập để xuất hồ sơ brief sáng tạo.',
+      )
+    ) {
+      return;
+    }
+    applyExportBrief();
+  }, [applyExportBrief, requireAuth]);
   const onUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -708,18 +773,30 @@ function Studio() {
     e.target.value = '';
   };
   const generate = async () => {
+    if (
+      !requireAuth(
+        () => void generate(),
+        'Vui lòng đăng nhập để tạo tác phẩm với mô hình AI.',
+      )
+    ) {
+      return;
+    }
     if (!prompt.trim()) {
       setNotice('Please describe what you want to create first.');
+      setNoticeType('warning');
       return;
     }
     setBusy(true);
     setResult(null);
     try {
+      const fullPrompt = negativePrompt.trim()
+        ? `${prompt} --no ${negativePrompt.trim()}`
+        : prompt;
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt,
+          prompt: fullPrompt,
           mode: view,
           model,
           ratio,
@@ -735,24 +812,160 @@ function Studio() {
       };
       if (!res.ok)
         throw new Error(data.error || 'Generation is currently unavailable.');
-      setResult(data);
+
+      const newGen: GenerationItem = {
+        id: crypto.randomUUID(),
+        url: data.url,
+        type:
+          (data.type as 'image' | 'video') ||
+          (view === 'video' || view === 'cinema' ? 'video' : 'image'),
+        prompt,
+        model,
+        ratio,
+        duration,
+        motion: cameraMotion,
+        createdAt: new Date().toISOString(),
+      };
+
+      setResult(newGen);
+      setGenerations((prev) => {
+        const next = [newGen, ...prev].slice(0, 30);
+        try {
+          localStorage.setItem('apexa-session-reel-v1', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+
       setNotice('Your creation is ready.');
+      setNoticeType('success');
     } catch (e) {
       setNotice(
         e instanceof Error ? e.message : 'Connection failed. Please try again.',
       );
+      setNoticeType('warning');
     } finally {
       setBusy(false);
     }
   };
-  const remix = (w: Work) => {
-    setPrompt(w.prompt);
+
+  const handleAnimateToVideo = useCallback(
+    (url: string, p?: string) => {
+      setUpload(url);
+      if (p) setPrompt(p);
+      navigate('video');
+      setNotice('Transferred artwork to Video Studio as starting frame.');
+      setNoticeType('info');
+    },
+    [navigate],
+  );
+
+  const handleSendToEditor = useCallback(
+    (url: string) => {
+      setUpload(url);
+      setBrightness(100);
+      setSaturation(100);
+      navigate('edit');
+      setNotice('Loaded artwork into Image Editor.');
+      setNoticeType('info');
+    },
+    [navigate],
+  );
+
+  const handleAddToStoryboard = useCallback(
+    (url: string, p?: string) => {
+      const newScene = {
+        id: crypto.randomUUID(),
+        text: p || prompt || 'Visual story scene',
+        image: url,
+      };
+      setScenes((prev) => [...prev, newScene]);
+      setNotice('Scene added to Cinema Storyboard.');
+      setNoticeType('success');
+    },
+    [prompt],
+  );
+
+  const handleRemixVariation = useCallback((p: string) => {
+    setPrompt(p);
+    setNotice('Prompt loaded into Studio for remixing.');
+    setNoticeType('info');
+  }, []);
+
+  const handleSaveToLibrary = useCallback(
+    (item: { url: string; type: string; prompt?: string }) => {
+      const d: Draft = {
+        id: crypto.randomUUID(),
+        title: (item.prompt || prompt).slice(0, 54),
+        prompt: item.prompt || prompt,
+        mode: view,
+        model,
+        ratio,
+        created: new Date().toISOString(),
+      };
+      const next = [d, ...drafts];
+      if (persist(saved, next)) {
+        setDrafts(next);
+        setNotice('Asset saved to My Library.');
+        setNoticeType('success');
+      }
+    },
+    [prompt, view, model, ratio, drafts, persist, saved],
+  );
+
+  const animateWork = useCallback(
+    (w: Work) => {
+      setUpload(w.image);
+      setPrompt(w.prompt);
+      setDetail(null);
+      navigate('video');
+      setNotice(`Ready to animate "${w.title}" in Video Studio.`);
+      setNoticeType('info');
+    },
+    [navigate],
+  );
+
+  const addToStoryboardWork = useCallback(
+    (w: Work) => {
+      const newScene = {
+        id: crypto.randomUUID(),
+        text: w.prompt,
+        image: w.image,
+      };
+      setScenes((prev) => [...prev, newScene]);
+      setDetail(null);
+      navigate('cinema');
+      setNotice(`Added "${w.title}" to Cinema Storyboard.`);
+      setNoticeType('success');
+    },
+    [navigate],
+  );
+
+  const useAsReference = useCallback((w: Work) => {
+    setUpload(w.image);
     setDetail(null);
-    navigate('image');
+    setNotice(`Set "${w.title}" as reference image.`);
+    setNoticeType('info');
+  }, []);
+
+  const remix = (w: Work) => {
+    requireAuth(() => {
+      setPrompt(w.prompt);
+      setDetail(null);
+      navigate('image');
+    }, 'Vui lòng đăng nhập để sử dụng prompt này trong Studio.');
   };
   const exportImage = () => {
+    if (
+      !requireAuth(
+        () => exportImage(),
+        'Vui lòng đăng nhập để xuất ảnh đã chỉnh sửa.',
+      )
+    ) {
+      return;
+    }
     if (!upload) {
       setNotice('Upload an image to adjust and export.');
+      setNoticeType('warning');
       return;
     }
     const im = new window.Image();
@@ -838,10 +1051,26 @@ function Studio() {
                 ))}
                 <span className="nav-group">
                   <span className="nav-divider" aria-hidden />
-                  <Link className="nav-link" href="/production">
+                  <button
+                    className="nav-link"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                    onClick={() =>
+                      requireAuth(
+                        () => router.push('/production'),
+                        'Vui lòng đăng nhập để truy cập Cinema Production Suite.',
+                      )
+                    }
+                  >
                     <Clapperboard size={14} />
                     <span className="nav-link-content">Production Suite</span>
-                  </Link>
+                  </button>
                 </span>
               </div>
             </nav>
@@ -854,17 +1083,7 @@ function Studio() {
                   <span>Help</span>
                 </button>
               </StudioTooltip>
-              <StudioTooltip content="Notifications" side="bottom">
-                <button
-                  className="icon-button notification"
-                  aria-label="Notifications"
-                  onClick={() =>
-                    setNotice('You are all caught up. Welcome to Apexa!')
-                  }
-                >
-                  <Bell size={18} />
-                </button>
-              </StudioTooltip>
+              <NotificationBell />
               <span className="header-divider" />
               <AccountMenu />
               {/* Mobile hamburger */}
@@ -931,9 +1150,28 @@ function Studio() {
                   </div>
                 ))}
                 <div className="mobile-nav-footer">
-                  <Link className="mobile-nav-link" href="/production">
+                  <button
+                    className="mobile-nav-link"
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      requireAuth(
+                        () => router.push('/production'),
+                        'Vui lòng đăng nhập để truy cập Cinema Production Suite.',
+                      );
+                    }}
+                  >
                     <Clapperboard size={16} /> Production Suite
-                  </Link>
+                  </button>
                   <button
                     onClick={() => {
                       setHelp(true);
@@ -1042,21 +1280,39 @@ function Studio() {
                           : 'Make the unimagined. In your own vision.'}
                     </p>
                   </div>
-                  <StudioTooltip
-                    content="Create new project"
-                    kbd="N"
-                    side="left"
+                  <div
+                    style={{ display: 'flex', gap: 8, alignItems: 'center' }}
                   >
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      className="button primary"
-                      onClick={() => navigate('image')}
+                    {view === 'saved' && (
+                      <Link
+                        href="/account?tab=cloud"
+                        className="button secondary"
+                        style={{ fontSize: 12, gap: 6 }}
+                      >
+                        <Cloud size={14} /> Sao lưu Cloud ({saved.length})
+                      </Link>
+                    )}
+                    <StudioTooltip
+                      content="Create new project"
+                      kbd="N"
+                      side="left"
                     >
-                      <Plus size={17} />
-                      New Project
-                    </motion.button>
-                  </StudioTooltip>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="button primary"
+                        onClick={() =>
+                          requireAuth(
+                            () => navigate('image'),
+                            'Vui lòng đăng nhập để bắt đầu dự án sáng tạo mới.',
+                          )
+                        }
+                      >
+                        <Plus size={17} />
+                        New Project
+                      </motion.button>
+                    </StudioTooltip>
+                  </div>
                 </div>
                 {view === 'explore' && (
                   <>
@@ -1079,7 +1335,12 @@ function Studio() {
                               stiffness: 450,
                               damping: 25,
                             }}
-                            onClick={() => navigate(m.id)}
+                            onClick={() =>
+                              requireAuth(
+                                () => navigate(m.id),
+                                `Vui lòng đăng nhập để sử dụng không gian ${m.name}.`,
+                              )
+                            }
                           >
                             <span className={'tool-icon ' + m.id}>
                               <m.icon size={21} />
@@ -1104,8 +1365,10 @@ function Studio() {
                         index={i}
                         previewImage={works[i % works.length].image}
                         onSelect={() => {
-                          setCameraMotion(m);
-                          navigate('video');
+                          requireAuth(() => {
+                            setCameraMotion(m);
+                            navigate('video');
+                          }, 'Vui lòng đăng nhập để áp dụng preset camera và tạo video.');
                         }}
                       />
                     ))}
@@ -1201,23 +1464,40 @@ function Studio() {
                         <Bookmark />
                         <h3>
                           {view === 'saved'
-                            ? 'No saved concepts yet'
+                            ? !isAuthenticated
+                              ? 'Đăng nhập để xem tác phẩm đã lưu'
+                              : 'No saved concepts yet'
                             : 'No matching inspiration found'}
                         </h3>
                         <p>
                           {view === 'saved'
-                            ? 'Bookmark artworks to keep them in your collection.'
+                            ? !isAuthenticated
+                              ? 'Đăng nhập tài khoản Apexa để lưu trữ và quản lý các tác phẩm bạn yêu thích.'
+                              : 'Bookmark artworks to keep them in your collection.'
                             : 'Try different keywords or select All.'}
                         </p>
                         <button
-                          className="button secondary"
+                          className={
+                            view === 'saved' && !isAuthenticated
+                              ? 'button primary'
+                              : 'button secondary'
+                          }
                           onClick={() => {
-                            setQuery('');
-                            setCategory('All');
-                            if (view === 'saved') navigate('explore');
+                            if (view === 'saved' && !isAuthenticated) {
+                              openAuthModal(
+                                'login',
+                                'Vui lòng đăng nhập để xem tác phẩm đã lưu.',
+                              );
+                            } else {
+                              setQuery('');
+                              setCategory('All');
+                              if (view === 'saved') navigate('explore');
+                            }
                           }}
                         >
-                          Explore inspiration
+                          {view === 'saved' && !isAuthenticated
+                            ? 'Đăng nhập ngay'
+                            : 'Explore inspiration'}
                         </button>
                       </div>
                     )}
@@ -1228,18 +1508,61 @@ function Studio() {
               <>
                 <div className="page-heading">
                   <div>
-                    <h1>My Library</h1>
-                    <p>Drafts saved locally on this browser.</p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <h1>My Library</h1>
+                      <Link
+                        href="/account?tab=cloud"
+                        className="nav-badge"
+                        style={{
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '3px 8px',
+                          cursor: 'pointer',
+                        }}
+                        title="Đồng bộ hóa tác phẩm vào tài khoản của bạn"
+                      >
+                        <Cloud size={11} /> Cloud Backup
+                      </Link>
+                    </div>
+                    <p>
+                      Bản nháp được lưu an toàn. Bạn có thể đồng bộ vào tài
+                      khoản để làm việc trên mọi thiết bị.
+                    </p>
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="button primary"
-                    onClick={() => navigate('image')}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 8,
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                    }}
                   >
-                    <Plus size={17} />
-                    New Project
-                  </motion.button>
+                    <Link
+                      href="/account?tab=cloud"
+                      className="button secondary"
+                      style={{ fontSize: 12, gap: 6 }}
+                    >
+                      <Cloud size={14} /> Đồng bộ Cloud
+                    </Link>
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="button primary"
+                      onClick={() => navigate('image')}
+                    >
+                      <Plus size={17} />
+                      New Project
+                    </motion.button>
+                  </div>
                 </div>
                 <div className="draft-grid">
                   {drafts.map((d) => (
@@ -1295,13 +1618,29 @@ function Studio() {
                 {!drafts.length && (
                   <div className="empty-state">
                     <FolderOpen />
-                    <h2>Every production starts somewhere.</h2>
-                    <p>Create and save your first creative draft.</p>
+                    <h2>
+                      {!isAuthenticated
+                        ? 'Bản nháp & Dự án của bạn'
+                        : 'Every production starts somewhere.'}
+                    </h2>
+                    <p>
+                      {!isAuthenticated
+                        ? 'Đăng nhập để xem, lưu trữ và đồng bộ hóa các bản nháp trên mọi thiết bị.'
+                        : 'Create and save your first creative draft.'}
+                    </p>
                     <button
                       className="button primary"
-                      onClick={() => navigate('image')}
+                      onClick={() =>
+                        !isAuthenticated
+                          ? openAuthModal(
+                              'login',
+                              'Vui lòng đăng nhập để quản lý bản nháp.',
+                            )
+                          : navigate('image')
+                      }
                     >
-                      Start creating <Plus size={16} />
+                      {!isAuthenticated ? 'Đăng nhập ngay' : 'Start creating'}{' '}
+                      <Plus size={16} />
                     </button>
                   </div>
                 )}
@@ -1310,6 +1649,30 @@ function Studio() {
               <GetStudio onNotice={setNotice} />
             ) : (
               <>
+                {!isAuthenticated && (
+                  <div className="studio-preview-banner">
+                    <div className="preview-banner-text">
+                      <Sparkles size={16} className="text-[#00d2ff]" />
+                      <span>
+                        <strong>Chế độ xem trước:</strong> Đăng nhập tài khoản
+                        Apexa để mở khóa toàn bộ mô hình AI cao cấp, lưu trữ đám
+                        mây và kết xuất không giới hạn.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-banner-login"
+                      onClick={() =>
+                        openAuthModal(
+                          'login',
+                          'Vui lòng đăng nhập để sử dụng không gian sáng tạo Apexa.',
+                        )
+                      }
+                    >
+                      Đăng nhập ngay
+                    </button>
+                  </div>
+                )}
                 <div className="page-heading studio-heading">
                   <div>
                     <h1>
@@ -1529,29 +1892,36 @@ function Studio() {
                         </div>
                         {view !== 'audio' && (
                           <>
-                            <span className="field-label">Model</span>
-                            <Picker
-                              value={model}
-                              onChange={setModel}
-                              values={
-                                view === 'video' || view === 'cinema'
-                                  ? ['Apexa Video']
-                                  : ['Apexa Image']
-                              }
+                            <WorkflowControls
+                              prompt={prompt}
+                              onPromptChange={setPrompt}
+                              ratio={ratio}
+                              onRatioChange={setRatio}
+                              cameraMotion={cameraMotion}
+                              onCameraMotionChange={setCameraMotion}
+                              negativePrompt={negativePrompt}
+                              onNegativePromptChange={setNegativePrompt}
+                              mode={view}
+                              onNotice={(msg, type) => {
+                                setNotice(msg);
+                                if (type) setNoticeType(type);
+                              }}
                             />
-                            <p className="field-hint">
-                              Requires an active AI endpoint configuration to
-                              generate.
-                            </p>
-                            <div className="field-row">
+
+                            <div
+                              className="field-row"
+                              style={{ marginTop: '14px' }}
+                            >
                               <div>
-                                <span className="field-label">
-                                  Aspect Ratio
-                                </span>
+                                <span className="field-label">AI Engine</span>
                                 <Picker
-                                  value={ratio}
-                                  onChange={setRatio}
-                                  values={['16:9', '9:16', '1:1', '4:3', '3:2']}
+                                  value={model}
+                                  onChange={setModel}
+                                  values={
+                                    view === 'video' || view === 'cinema'
+                                      ? ['Apexa Video', 'Cinema Engine 4K']
+                                      : ['Apexa Image', 'Photoreal Engine v2']
+                                  }
                                 />
                               </div>
                               <div>
@@ -1570,23 +1940,15 @@ function Studio() {
                                   values={
                                     view === 'video' || view === 'cinema'
                                       ? ['5s', '10s']
-                                      : ['Standard']
+                                      : ['Standard', 'High-res 4K']
                                   }
                                 />
                               </div>
                             </div>
-                            {(view === 'video' || view === 'cinema') && (
-                              <>
-                                <span className="field-label">
-                                  Camera Motion
-                                </span>
-                                <Picker
-                                  value={cameraMotion}
-                                  onChange={setCameraMotion}
-                                  values={motions}
-                                />
-                              </>
-                            )}
+                            <p className="field-hint">
+                              Requires an active AI endpoint configuration to
+                              generate.
+                            </p>
                           </>
                         )}
                         <div className="generation-actions">
@@ -1594,46 +1956,61 @@ function Studio() {
                             <button
                               className="button primary full"
                               onClick={() => {
-                                if (!prompt.trim()) {
-                                  setNotice(
-                                    'Please enter a voiceover script first.',
+                                requireAuth(() => {
+                                  if (!prompt.trim()) {
+                                    setNotice(
+                                      'Please enter a voiceover script first.',
+                                    );
+                                    setNoticeType('warning');
+                                    return;
+                                  }
+                                  if (!('speechSynthesis' in window)) {
+                                    setNotice(
+                                      'Speech synthesis is not supported on this browser.',
+                                    );
+                                    setNoticeType('warning');
+                                    return;
+                                  }
+                                  speechSynthesis.cancel();
+                                  const speech = new SpeechSynthesisUtterance(
+                                    prompt,
                                   );
-                                  return;
-                                }
-                                if (!('speechSynthesis' in window)) {
-                                  setNotice(
-                                    'Speech synthesis is not supported on this browser.',
-                                  );
-                                  return;
-                                }
-                                speechSynthesis.cancel();
-                                const speech = new SpeechSynthesisUtterance(
-                                  prompt,
-                                );
-                                speech.lang = 'en-US';
-                                speechSynthesis.speak(speech);
-                                setNotice('Auditioning with device voice.');
+                                  speech.lang = 'en-US';
+                                  speechSynthesis.speak(speech);
+                                  setNotice('Auditioning with device voice.');
+                                  setNoticeType('info');
+                                }, 'Vui lòng đăng nhập để nghe thử giọng đọc AI.');
                               }}
                             >
-                              <Volume2 size={17} />
-                              Audition on Device
+                              {!isAuthenticated ? (
+                                <Lock size={17} />
+                              ) : (
+                                <Volume2 size={17} />
+                              )}
+                              {!isAuthenticated
+                                ? 'Đăng nhập để thử giọng'
+                                : 'Audition on Device'}
                             </button>
                           ) : (
                             <button
-                              className="button primary full"
+                              className={`button primary full ${!isAuthenticated ? 'button-locked' : ''}`}
                               disabled={busy}
                               onClick={generate}
                             >
                               {busy ? (
                                 <LoaderCircle className="spin" size={17} />
+                              ) : !isAuthenticated ? (
+                                <Lock size={17} />
                               ) : (
                                 <Sparkles size={17} />
                               )}{' '}
                               {busy
                                 ? 'Generating…'
-                                : view === 'video' || view === 'cinema'
-                                  ? 'Generate Video'
-                                  : 'Generate Image'}
+                                : !isAuthenticated
+                                  ? 'Đăng nhập để tạo'
+                                  : view === 'video' || view === 'cinema'
+                                    ? 'Generate Video'
+                                    : 'Generate Image'}
                               <ArrowRight size={17} />
                             </button>
                           )}
@@ -1641,8 +2018,14 @@ function Studio() {
                             className="button secondary full"
                             onClick={saveDraft}
                           >
-                            <Bookmark size={15} />
-                            Save Draft
+                            {!isAuthenticated ? (
+                              <Lock size={15} />
+                            ) : (
+                              <Bookmark size={15} />
+                            )}
+                            {!isAuthenticated
+                              ? 'Đăng nhập để lưu'
+                              : 'Save Draft'}
                           </button>
                           {view === 'audio' && (
                             <button
@@ -1688,10 +2071,14 @@ function Studio() {
                           <button
                             className="button secondary"
                             onClick={() =>
-                              setScenes([
-                                ...scenes,
-                                { id: crypto.randomUUID(), text: '' },
-                              ])
+                              requireAuth(
+                                () =>
+                                  setScenes([
+                                    ...scenes,
+                                    { id: crypto.randomUUID(), text: '' },
+                                  ]),
+                                'Vui lòng đăng nhập để thêm cảnh vào Storyboard.',
+                              )
                             }
                           >
                             <Plus size={16} />
@@ -1703,6 +2090,18 @@ function Studio() {
                             <div className="scene-number">
                               {String(i + 1).padStart(2, '0')}
                             </div>
+                            {s.image && (
+                              <div className="scene-thumb-preview">
+                                <NextImage
+                                  src={s.image}
+                                  alt={`Scene ${i + 1} reference`}
+                                  width={120}
+                                  height={80}
+                                  className="scene-thumb-img"
+                                  unoptimized
+                                />
+                              </div>
+                            )}
                             <textarea
                               aria-label={'Scene content ' + (i + 1)}
                               placeholder="Describe scene, camera angle, action, lighting..."
@@ -1723,8 +2122,10 @@ function Studio() {
                                 aria-label="Use scene as prompt"
                                 onClick={() => {
                                   setPrompt(s.text);
+                                  if (s.image) setUpload(s.image);
                                   setNotice('Scene transferred to prompt.');
                                 }}
+                                title="Transfer to prompt"
                               >
                                 <ArrowLeft size={15} />
                               </button>
@@ -1734,6 +2135,7 @@ function Studio() {
                                 onClick={() =>
                                   setScenes(scenes.filter((x) => x.id !== s.id))
                                 }
+                                title="Delete scene"
                               >
                                 <Trash2 size={15} />
                               </button>
@@ -1746,29 +2148,23 @@ function Studio() {
                         </p>
                       </div>
                     ) : result ? (
-                      <div className="result-preview">
-                        {result.type === 'video' ? (
-                          <video src={result.url} controls>
-                            <track kind="captions" />
-                          </video>
-                        ) : (
-                          <NextImage
-                            src={result.url}
-                            alt="AI generated creation"
-                            unoptimized
-                            width={1200}
-                            height={800}
-                          />
-                        )}
-                        <a
-                          className="button secondary"
-                          href={result.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open Artwork <ArrowUpRight size={16} />
-                        </a>
-                      </div>
+                      <PreviewViewport
+                        result={result}
+                        referenceImage={upload}
+                        compareItem={compareItem}
+                        onClearCompare={() => setCompareItem(null)}
+                        onAnimateToVideo={handleAnimateToVideo}
+                        onSendToEditor={handleSendToEditor}
+                        onAddToStoryboard={handleAddToStoryboard}
+                        onRemix={handleRemixVariation}
+                        onSaveToLibrary={handleSaveToLibrary}
+                        onNotice={(msg, type) => {
+                          setNotice(msg);
+                          if (type) setNoticeType(type);
+                        }}
+                        isAuthenticated={isAuthenticated}
+                        requireAuth={requireAuth}
+                      />
                     ) : upload ? (
                       <div className="uploaded-preview">
                         <NextImage
@@ -1781,6 +2177,13 @@ function Studio() {
                             filter: `brightness(${brightness}%) saturate(${saturation}%)`,
                           }}
                         />
+                        <div className="edit-preview-overlay-info">
+                          <span>
+                            {view === 'edit'
+                              ? `Brightness: ${brightness}% · Saturation: ${saturation}%`
+                              : 'Reference Image Active'}
+                          </span>
+                        </div>
                       </div>
                     ) : (
                       <div className="preview-empty">
@@ -1821,6 +2224,67 @@ function Studio() {
                         </div>
                       </div>
                     )}
+
+                    {generations.length > 0 &&
+                      view !== 'cinema' &&
+                      view !== 'canvas' && (
+                        <GenerationReel
+                          items={generations}
+                          activeId={result?.id}
+                          comparingId={compareItem?.id}
+                          onSelect={(item) => {
+                            setResult(item);
+                            setPrompt(item.prompt);
+                            setModel(item.model);
+                            setRatio(item.ratio);
+                            if (item.motion) setCameraMotion(item.motion);
+                          }}
+                          onCompare={(item) => {
+                            setCompareItem(item);
+                            setNotice(
+                              `Comparing with Take #${item.id.slice(0, 4)}`,
+                            );
+                            setNoticeType('info');
+                          }}
+                          onDelete={(id) => {
+                            setGenerations((prev) => {
+                              const next = prev.filter((g) => g.id !== id);
+                              try {
+                                localStorage.setItem(
+                                  'apexa-session-reel-v1',
+                                  JSON.stringify(next),
+                                );
+                              } catch {}
+                              return next;
+                            });
+                          }}
+                          onFavorite={(id) => {
+                            setGenerations((prev) => {
+                              const next = prev.map((g) =>
+                                g.id === id
+                                  ? { ...g, favorite: !g.favorite }
+                                  : g,
+                              );
+                              try {
+                                localStorage.setItem(
+                                  'apexa-session-reel-v1',
+                                  JSON.stringify(next),
+                                );
+                              } catch {}
+                              return next;
+                            });
+                          }}
+                          onClearAll={() => {
+                            setGenerations([]);
+                            try {
+                              localStorage.removeItem('apexa-session-reel-v1');
+                            } catch {}
+                            setNotice('Session takes cleared.');
+                            setNoticeType('info');
+                          }}
+                        />
+                      )}
+
                     <div className="preview-footer">
                       <span>
                         <span className="status-dot" />
@@ -1859,6 +2323,9 @@ function Studio() {
             setHelp={setHelp}
             saved={saved}
             remix={remix}
+            onAnimateWork={animateWork}
+            onAddToStoryboardWork={addToStoryboardWork}
+            onUseAsReference={useAsReference}
             toggleSave={toggleSave}
           />
         )}
@@ -1866,7 +2333,7 @@ function Studio() {
           {notice && (
             <motion.output
               key="app-notice-toast"
-              className="toast"
+              className={`toast toast-${noticeType}`}
               initial={{ opacity: 0, y: 24, x: '-50%', scale: 0.94 }}
               animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
               exit={{
@@ -1878,7 +2345,13 @@ function Studio() {
               }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }}
             >
-              <Sparkles size={17} />
+              {noticeType === 'success' ? (
+                <CheckCircle2 size={17} className="text-emerald-400" />
+              ) : noticeType === 'warning' ? (
+                <AlertCircle size={17} className="text-amber-400" />
+              ) : (
+                <Sparkles size={17} className="text-[#00d2ff]" />
+              )}
               <span>{notice}</span>
               <button
                 onClick={() => setNotice('')}

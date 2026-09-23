@@ -36,7 +36,7 @@ export type Draft = {
   model: string;
   ratio: string;
   created: string;
-  scenes?: { id: string; text: string }[];
+  scenes?: { id: string; text: string; image?: string }[];
   motion?: string;
   duration?: string;
   brand?: string;
