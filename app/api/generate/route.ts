@@ -20,7 +20,10 @@ export async function POST(request: Request) {
   const originHeader = request.headers.get('origin');
   if (originHeader && originHeader !== 'null') {
     try {
-      if (new URL(originHeader).origin !== new URL(request.url).origin) {
+      const host =
+        request.headers.get('x-forwarded-host') || request.headers.get('host');
+      const originHost = new URL(originHeader).host;
+      if (host && originHost !== host) {
         return json({ error: 'Invalid request origin.' }, 403);
       }
     } catch {

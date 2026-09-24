@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "format": "oxfmt",
+    "test": "node scripts/check-production.mjs",
+    "test:auth": "node scripts/check-auth.mjs",
     "build:cloudflare": "opennextjs-cloudflare build --skipNextBuild",
     "build:sites": "npm run build && npm run build:cloudflare && node scripts/stage-sites.mjs"
   },

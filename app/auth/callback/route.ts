@@ -8,9 +8,16 @@ export async function GET(request: NextRequest) {
   const type = params.get('type');
   const oauthError = params.get('error');
 
+  const host =
+    request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const proto =
+    request.headers.get('x-forwarded-proto') ||
+    (request.url.startsWith('https') ? 'https' : 'http');
+  const origin = host ? `${proto}://${host}` : request.nextUrl.origin;
+
   if (oauthError) {
     const response = NextResponse.redirect(
-      new URL('/login?error=oauth', request.url),
+      new URL('/login?error=oauth', origin),
     );
     response.headers.set('Cache-Control', 'private, no-store');
     response.headers.set('Referrer-Policy', 'no-referrer');
@@ -47,7 +54,7 @@ export async function GET(request: NextRequest) {
         ? nextParam
         : '/account'
     : '/login?error=callback';
-  const response = NextResponse.redirect(new URL(destination, request.url));
+  const response = NextResponse.redirect(new URL(destination, origin));
   response.headers.set('Cache-Control', 'private, no-store');
   response.headers.set('Referrer-Policy', 'no-referrer');
   return response;

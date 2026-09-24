@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
@@ -14,5 +15,9 @@ export default async function Account() {
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) redirect('/login');
 
-  return <AccountDashboard initialUser={data.user} />;
+  return (
+    <Suspense fallback={null}>
+      <AccountDashboard initialUser={data.user} />
+    </Suspense>
+  );
 }
