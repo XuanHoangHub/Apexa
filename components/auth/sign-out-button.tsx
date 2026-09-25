@@ -9,6 +9,9 @@ export default function SignOutButton() {
     setBusy(true);
     setError('');
     try {
+      try {
+        await fetch('/api/auth/signout', { method: 'POST' });
+      } catch {}
       const { error } = await createClient().auth.signOut({ scope: 'local' });
       if (error) throw error;
       window.location.assign('/login');

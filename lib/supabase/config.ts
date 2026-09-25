@@ -1,6 +1,10 @@
 export function supabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    'https://njrbrhkxpsbqehlpcfdy.supabase.co';
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    'sb_publishable_U6YCeKfVJaVxQokPzOlZLw_SdXgeAST';
   if (!url || !key)
     throw new Error(
       'Supabase chưa được cấu hình. Vui lòng liên hệ quản trị viên.',

@@ -270,67 +270,255 @@ export default function AuthForm({
 
       if (mode === 'login') {
         if (magicLink) {
-          const { error: magicErr } = await supabase.auth.signInWithOtp({
-            email: email.trim(),
-            options: {
-              emailRedirectTo: callback,
-            },
-          });
-          if (magicErr) {
-            setError(authError(magicErr));
+          let otpSent = false;
+          let otpError: { code?: string; message: string } | null = null;
+          try {
+            const res = await fetch('/api/auth/otp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email.trim(), callback }),
+            });
+            const json = await res.json();
+            if (json.success) otpSent = true;
+            else if (json.error) otpError = json.error;
+          } catch (fetchErr) {
+            console.warn(
+              'Server OTP endpoint unreachable, trying client-side:',
+              fetchErr,
+            );
+          }
+
+          if (!otpSent && (!otpError || otpError.code === 'server_error')) {
+            try {
+              const { error: magicErr } = await supabase.auth.signInWithOtp({
+                email: email.trim(),
+                options: { emailRedirectTo: callback },
+              });
+              if (magicErr) {
+                otpError = magicErr;
+              } else {
+                otpSent = true;
+                otpError = null;
+              }
+            } catch (e) {
+              console.error('Direct OTP error:', e);
+            }
+          }
+          if (otpError) {
+            setError(authError(otpError));
             return;
           }
-          setSuccess(true);
+          if (otpSent) {
+            setSuccess(true);
+            return;
+          }
+          setError('Không thể gửi liên kết. Vui lòng thử lại sau.');
           return;
         }
 
-        const { error: loginErr } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (loginErr) {
-          setError(authError(loginErr));
+        let loggedIn = false;
+        let authFailure: { code?: string; message: string } | null = null;
+
+        // 1. Try server-side endpoint first (resilient against adblockers, CORS, local ISP DNS blocks)
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim(), password }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            loggedIn = true;
+            if (json.session) {
+              try {
+                await supabase.auth.setSession(json.session);
+              } catch {}
+            }
+          } else if (json.error) {
+            authFailure = json.error;
+          }
+        } catch (fetchErr) {
+          console.warn(
+            'Server auth endpoint unreachable, trying client-side:',
+            fetchErr,
+          );
+        }
+
+        // 2. If server endpoint was unreachable, try direct Supabase client as fallback
+        if (
+          !loggedIn &&
+          (!authFailure || authFailure.code === 'server_error')
+        ) {
+          try {
+            const { data, error: loginErr } =
+              await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+              });
+            if (loginErr) {
+              authFailure = loginErr;
+            } else if (data.session) {
+              loggedIn = true;
+              authFailure = null;
+            }
+          } catch (directErr) {
+            console.error('Direct Supabase login error:', directErr);
+          }
+        }
+
+        if (authFailure) {
+          setError(authError(authFailure));
           return;
         }
-        if (inModal && onSuccess) {
-          onSuccess();
-        } else {
-          window.location.assign(nextQuery);
-        }
-      } else if (mode === 'signup') {
-        const { data, error: signupErr } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: { full_name: name.trim() },
-            emailRedirectTo: callback,
-          },
-        });
-        if (signupErr) {
-          setError(authError(signupErr));
-          return;
-        }
-        if (data.session) {
+
+        if (loggedIn) {
           if (inModal && onSuccess) {
             onSuccess();
           } else {
             window.location.assign(nextQuery);
           }
-        } else {
-          setPassword('');
-          setConfirmation('');
-          setSuccess(true);
-        }
-      } else if (mode === 'forgot') {
-        const { error: forgotErr } = await supabase.auth.resetPasswordForEmail(
-          email.trim(),
-          { redirectTo: `${callback}?next=/reset-password` },
-        );
-        if (forgotErr) {
-          setError(authError(forgotErr));
           return;
         }
-        setSuccess(true);
+
+        setError(
+          'Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra mạng và thử lại.',
+        );
+        return;
+      } else if (mode === 'signup') {
+        let signedUp = false;
+        let signupError: { code?: string; message: string } | null = null;
+        let sessionData: unknown = null;
+
+        try {
+          const res = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email.trim(),
+              password,
+              name: name.trim(),
+              callback,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) {
+            signedUp = true;
+            sessionData = json.session;
+            if (json.session) {
+              try {
+                await supabase.auth.setSession(json.session);
+              } catch {}
+            }
+          } else if (json.error) {
+            signupError = json.error;
+          }
+        } catch (fetchErr) {
+          console.warn(
+            'Server signup endpoint unreachable, trying client-side:',
+            fetchErr,
+          );
+        }
+
+        if (
+          !signedUp &&
+          (!signupError || signupError.code === 'server_error')
+        ) {
+          try {
+            const { data, error: err } = await supabase.auth.signUp({
+              email: email.trim(),
+              password,
+              options: {
+                data: { full_name: name.trim() },
+                emailRedirectTo: callback,
+              },
+            });
+            if (err) {
+              signupError = err;
+            } else {
+              signedUp = true;
+              sessionData = data.session;
+              signupError = null;
+            }
+          } catch (e) {
+            console.error('Direct signup error:', e);
+          }
+        }
+
+        if (signupError) {
+          setError(authError(signupError));
+          return;
+        }
+
+        if (signedUp) {
+          if (sessionData) {
+            if (inModal && onSuccess) {
+              onSuccess();
+            } else {
+              window.location.assign(nextQuery);
+            }
+          } else {
+            setPassword('');
+            setConfirmation('');
+            setSuccess(true);
+          }
+          return;
+        }
+
+        setError(
+          'Không thể hoàn tất đăng ký. Vui lòng kiểm tra mạng và thử lại.',
+        );
+        return;
+      } else if (mode === 'forgot') {
+        let resetSent = false;
+        let resetError: { code?: string; message: string } | null = null;
+        const resetCallback = `${window.location.origin}/auth/callback?next=/reset-password`;
+
+        try {
+          const res = await fetch('/api/auth/forgot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email.trim(),
+              callback: resetCallback,
+            }),
+          });
+          const json = await res.json();
+          if (json.success) resetSent = true;
+          else if (json.error) resetError = json.error;
+        } catch (fetchErr) {
+          console.warn(
+            'Server forgot endpoint unreachable, trying client-side:',
+            fetchErr,
+          );
+        }
+
+        if (!resetSent && (!resetError || resetError.code === 'server_error')) {
+          try {
+            const { error: forgotErr } =
+              await supabase.auth.resetPasswordForEmail(email.trim(), {
+                redirectTo: resetCallback,
+              });
+            if (forgotErr) {
+              resetError = forgotErr;
+            } else {
+              resetSent = true;
+              resetError = null;
+            }
+          } catch (e) {
+            console.error('Direct forgot password error:', e);
+          }
+        }
+
+        if (resetError) {
+          setError(authError(resetError));
+          return;
+        }
+        if (resetSent) {
+          setSuccess(true);
+          return;
+        }
+        setError('Không thể gửi liên kết khôi phục. Vui lòng thử lại sau.');
+        return;
       } else {
         const { error: updateErr } = await supabase.auth.updateUser({
           password,
@@ -343,8 +531,11 @@ export default function AuthForm({
         setConfirmation('');
         setSuccess(true);
       }
-    } catch {
-      setError('Không thể kết nối. Vui lòng kiểm tra mạng và thử lại.');
+    } catch (e) {
+      console.error('Auth submit error:', e);
+      setError(
+        'Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra mạng và thử lại.',
+      );
     } finally {
       setBusy(false);
     }

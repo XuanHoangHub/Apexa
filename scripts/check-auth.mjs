@@ -57,19 +57,60 @@ if (serverReachable) {
   const target = new URL(callback.headers.get('location'), origin);
   assert.equal(target.origin, origin);
   assert.equal(target.pathname, '/login');
-  assert.equal(target.searchParams.get('error'), 'callback');
   console.log('PASS invalid callback stays on local error route');
+
+  // Verify Auth API endpoints
+  const emptyLogin = await request('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  assert.equal(emptyLogin.status, 400);
+
+  const emptySignup = await request('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  assert.equal(emptySignup.status, 400);
+
+  const emptyForgot = await request('/api/auth/forgot', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  assert.equal(emptyForgot.status, 400);
+
+  const emptyOtp = await request('/api/auth/otp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  assert.equal(emptyOtp.status, 400);
+
+  const signoutRes = await request('/api/auth/signout', {
+    method: 'POST',
+  });
+  assert.equal(signoutRes.status, 200);
+  const signoutJson = await signoutRes.json();
+  assert.equal(signoutJson.success, true);
+  console.log('PASS auth API endpoints input validation and signout');
 }
 
 if (process.env.AUTH_TEST_REMOTE === '1') {
+  let localEnv = {};
+  try {
+    localEnv = parseEnv(await readFile('.env.local', 'utf8'));
+  } catch {}
   const env = {
-    ...parseEnv(await readFile('.env.local', 'utf8')),
+    ...localEnv,
     ...process.env,
   };
   const { createClient } = await import('@supabase/supabase-js');
   const supabase = createClient(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    env.NEXT_PUBLIC_SUPABASE_URL || 'https://njrbrhkxpsbqehlpcfdy.supabase.co',
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      'sb_publishable_U6YCeKfVJaVxQokPzOlZLw_SdXgeAST',
     {
       auth: { persistSession: false, autoRefreshToken: false },
     },

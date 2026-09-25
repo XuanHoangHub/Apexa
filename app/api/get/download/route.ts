@@ -202,9 +202,10 @@ export async function GET(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return new Response('Unauthorized: Vui lòng đăng nhập để tải media.', {
-      status: 401,
-    });
+    return NextResponse.json(
+      { error: 'Unauthorized: Vui lòng đăng nhập để tải media.' },
+      { status: 401 },
+    );
   }
 
   try {
